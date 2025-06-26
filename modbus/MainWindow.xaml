@@ -11,7 +11,7 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Width" Value="80"/>
             <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="Margin" Value="0, 10, 10, 10"/>
+            <Setter Property="Margin" Value="0, 2, 10, 2"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Template">
@@ -45,7 +45,7 @@
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Width" Value="100"/>
             <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="Margin" Value="0, 10, 8, 10"/>
+            <Setter Property="Margin" Value="0, 2, 8, 2"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="Template">
@@ -104,6 +104,42 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- 토글 버튼 스타일 -->
+        <Style x:Key="ToggleButton" TargetType="Button">
+            <Setter Property="Background" Value="#F0F0F0"/>
+            <Setter Property="Foreground" Value="#666666"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#E1E1E1"/>
+            <Setter Property="Padding" Value="6,6"/>               <!-- 버튼 내부 여백 (좌우16px, 상하8px) -->
+            <Setter Property="Margin" Value="2,0"/>                 <!-- 버튼 외부 여백 -->
+            <Setter Property="FontWeight" Value="Medium"/>          <!-- 폰트 굵기 -->
+            <Setter Property="FontSize" Value="16"/>                <!-- 폰트 크기 -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                CornerRadius="4" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                BorderBrush="{TemplateBinding BorderBrush}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#E8E8E8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 활성 토글 버튼 스타일 -->
+        <Style x:Key="ActiveToggleButton" TargetType="Button" BasedOn="{StaticResource ToggleButton}">
+            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#007ACC"/>
         </Style>
 
         <!-- 위험 버튼 스타일 -->
@@ -192,7 +228,6 @@
         </Style>
 
         <!-- 모던 콤보박스 스타일 -->
-        <!-- 화살표가 있는 완전한 모던 콤보박스 스타일 -->
         <Style x:Key="ModernComboBox" TargetType="ComboBox">
             <Setter Property="Background" Value="White"/>
             <Setter Property="BorderBrush" Value="#E1E1E1"/>
@@ -319,14 +354,13 @@
 
     <Grid Background="#F5F5F7">
         <Grid.RowDefinitions>
-            <RowDefinition Height="80"/>
-            <RowDefinition Height="80"/>
+            <RowDefinition Height="60"/>
+            <RowDefinition Height="60"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- 서버 제어 카드 -->
         <Border Grid.Row="0" Style="{StaticResource Card}" Margin="16, 10, 16, 0">
-
             <StackPanel Orientation="Horizontal" >
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <fa:IconImage Icon="Server" Width="24" Height="24" Foreground="Black" Margin="0,0,8,0"/>
@@ -347,14 +381,13 @@
 
                 <Border Background="#FFF4CE" CornerRadius="4" Padding="12,6" Margin="0,7,0,7">
                     <TextBlock x:Name="ServerStatusText" Text="서버 중지됨" 
-                                   Foreground="#9D6C00" FontWeight="Medium" VerticalAlignment="Center"/>
+                                   Foreground="#9D6C00" FontWeight="Bold" VerticalAlignment="Center"/>
                 </Border>
             </StackPanel>
         </Border>
 
         <!-- 장치 제어 카드 -->
         <Border Grid.Row="1" Margin="16, 10, 16, 0" Style="{StaticResource Card}">
-
             <StackPanel Orientation="Horizontal">
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <fa:IconImage Icon="Atom" Width="24" Height="24" Foreground="Black" Margin="0,0,8,0"/>
@@ -382,33 +415,55 @@
 
                 <Button Content="➕ 장치 추가" Click="AddDevice_Click" 
                             Style="{StaticResource ModernButton2}"/>
-                
             </StackPanel>
         </Border>
 
-        <!-- 메인 콘텐츠 영역 -->
-        <Grid Grid.Row="2" Margin="8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1*"/>
-                <ColumnDefinition Width="8"/>
-                <ColumnDefinition Width="1*"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- 장치 데이터 카드 -->
-            <Border Grid.Column="0" Style="{StaticResource Card}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0, 7, 0, 8">
-                        <fa:IconImage Icon="Database" Width="24" Height="24" Foreground="Black" Margin="0,0,8,0"/>
-                        <TextBlock Text="장치 데이터" Style="{StaticResource HeaderText}" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                        <Button Content="🗑️ 장치 삭제" Click="DeleteDevice_Click" Style="{StaticResource DangerButton3}"/>
+        <!-- 통합 데이터/로그 영역 -->
+        <Border Grid.Row="2" Style="{StaticResource Card}" Margin="16,8,16,8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                
+                <!-- 헤더 및 토글 버튼 -->
+                <Grid Grid.Row="0" Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- 왼쪽: 헤더 -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <fa:IconImage x:Name="HeaderIcon" Icon="Database" Width="24" Height="24" Foreground="Black" Margin="0,0,8,0"/>
+                        <TextBlock x:Name="HeaderText" Text="장치 데이터" Style="{StaticResource HeaderText}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                        
+                        <!-- 장치 삭제 버튼 (장치 데이터 모드에서만 표시) -->
+                        <Button x:Name="DeleteDeviceButton" Content="🗑️ 장치 삭제" Click="DeleteDevice_Click" 
+                                Style="{StaticResource DangerButton3}" Visibility="Visible"/>
                     </StackPanel>
-                    <TabControl Grid.Row="1" x:Name="DeviceTabControl" 
+                    
+                    <!-- 오른쪽: 토글 버튼 그룹 -->
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button x:Name="DeviceDataButton" Content="📊 장치 데이터" 
+                                Style="{StaticResource ActiveToggleButton}" 
+                                Click="ShowDeviceData_Click" 
+                                Margin="0,0,2,0"/>
+                        <Button x:Name="LogButton" Content="📋 로그" 
+                                Style="{StaticResource ToggleButton}" 
+                                Click="ShowLog_Click" 
+                                Margin="2,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+                
+                <!-- 콘텐츠 영역 -->
+                <Grid Grid.Row="1">
+                    <!-- 장치 데이터 TabControl -->
+                    <TabControl x:Name="DeviceTabControl" 
                                 Background="Transparent" BorderThickness="0"
-                                Padding="0" Margin="0">
+                                Padding="0" Margin="0" Visibility="Visible">
                         <TabControl.Resources>
                             <Style TargetType="TabItem">
                                 <Setter Property="Template">
@@ -473,21 +528,10 @@
                             </Style>
                         </TabControl.Resources>
                     </TabControl>
-                </Grid>
-            </Border>
-
-            <!-- 로그 카드 -->
-            <Border Grid.Column="2" Style="{StaticResource Card}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0, 7, 0, 8">
-                        <fa:IconImage Icon="FileLines" Width="24" Height="24" Foreground="Black" Margin="0,0,8,0"/>
-                        <TextBlock Text="로그" Style="{StaticResource HeaderText}" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                    </StackPanel>
-                    <Border Grid.Row="1" Background="#FAFBFC" CornerRadius="4" BorderBrush="#E1E1E1" BorderThickness="1">
+                    
+                    <!-- 로그 ListBox -->
+                    <Border x:Name="LogContainer" Background="#FAFBFC" CornerRadius="4" 
+                            BorderBrush="#E1E1E1" BorderThickness="1" Visibility="Collapsed">
                         <ListBox x:Name="LogBox" 
                                  Background="Transparent" 
                                  BorderThickness="0" 
@@ -510,7 +554,7 @@
                         </ListBox>
                     </Border>
                 </Grid>
-            </Border>
-        </Grid>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

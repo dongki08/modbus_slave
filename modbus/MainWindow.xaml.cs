@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Controls.Primitives;
 using System.Linq;
+using System.Text;
 using Modbus.Data;
 
 namespace modbus
@@ -92,6 +93,43 @@ namespace modbus
             {
                 MessageBox.Show($"서버 시작 실패: {ex.Message}");
             }
+        }
+        
+        private void ShowDeviceData_Click(object sender, RoutedEventArgs e)
+        {
+            // 버튼 스타일 변경
+            DeviceDataButton.Style = (Style)FindResource("ActiveToggleButton");
+            LogButton.Style = (Style)FindResource("ToggleButton");
+    
+            // 헤더 변경
+            HeaderIcon.Icon = FontAwesome.Sharp.IconChar.Database;
+            HeaderText.Text = "장치 데이터";
+    
+            // 컨텐츠 표시/숨김
+            DeviceTabControl.Visibility = Visibility.Visible;
+            LogContainer.Visibility = Visibility.Collapsed;
+    
+            // 장치 삭제 버튼 표시
+            DeleteDeviceButton.Visibility = Visibility.Visible;
+        }
+
+// 로그 보기 버튼 클릭
+        private void ShowLog_Click(object sender, RoutedEventArgs e)
+        {
+            // 버튼 스타일 변경
+            DeviceDataButton.Style = (Style)FindResource("ToggleButton");
+            LogButton.Style = (Style)FindResource("ActiveToggleButton");
+    
+            // 헤더 변경
+            HeaderIcon.Icon = FontAwesome.Sharp.IconChar.FileLines;
+            HeaderText.Text = "로그";
+    
+            // 컨텐츠 표시/숨김
+            DeviceTabControl.Visibility = Visibility.Collapsed;
+            LogContainer.Visibility = Visibility.Visible;
+    
+            // 장치 삭제 버튼 숨김
+            DeleteDeviceButton.Visibility = Visibility.Collapsed;
         }
 
         private void StopServer_Click(object sender, RoutedEventArgs e)
@@ -269,7 +307,7 @@ namespace modbus
             if (device.DualRegisters != null)
             {
                 string title = device.RegisterType == 40001 ? "🟠 Holding Register [40001+]" : "🟡 Input Register [30001+]";
-                var card = CreateDualRegisterCard(title, device.DualRegisters, true);
+                var card = CreateUnifiedRegisterCard(title, device.DualRegisters, true);
                 Grid.SetRow(card, currentRow++);
                 mainGrid.Children.Add(card);
             }
@@ -277,485 +315,485 @@ namespace modbus
             return mainGrid;
         }
 
-        // 듀얼 입력 레지스터 카드 생성 (비트/바이트 모드 선택 가능)
-        private UIElement CreateDualRegisterCard(string title, ObservableCollection<DualRegisterModel> data, bool fillHeight = false)
-{
-    Border cardBorder = new Border
-    {
-        Background = Brushes.White,
-        BorderBrush = new SolidColorBrush(Color.FromRgb(225, 225, 225)),
-        BorderThickness = new Thickness(1),
-        CornerRadius = new CornerRadius(6),
-        Margin = new Thickness(0, 0, 0, 4),
-        HorizontalAlignment = HorizontalAlignment.Stretch,
-        VerticalAlignment = VerticalAlignment.Stretch,
-        Effect = new DropShadowEffect
+        // 통합 레지스터 카드 생성 (모든 형태 동시 표시)
+        private UIElement CreateUnifiedRegisterCard(string title, ObservableCollection<DualRegisterModel> data, bool fillHeight = false)
         {
-            Color = Color.FromArgb(0x15, 0x00, 0x00, 0x00),
-            BlurRadius = 6,
-            ShadowDepth = 1,
-            Opacity = 0.2
-        }
-    };
-
-    Grid cardContent = new Grid { Margin = new Thickness(12, 8, 12, 8) };
-    cardContent.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 헤더
-    cardContent.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 모드 선택
-    cardContent.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 콘텐츠
-
-    TextBlock header = new TextBlock
-    {
-        Text = title,
-        FontSize = 14,
-        FontWeight = FontWeights.SemiBold,
-        Foreground = new SolidColorBrush(Color.FromRgb(44, 44, 44)),
-        Margin = new Thickness(0, 0, 0, 8)
-    };
-    Grid.SetRow(header, 0);
-    cardContent.Children.Add(header);
-
-    StackPanel modePanel = new StackPanel
-    {
-        Orientation = Orientation.Horizontal,
-        Margin = new Thickness(0, 0, 0, 10)
-    };
-    Grid.SetRow(modePanel, 1);
-
-    TextBlock modeLabel = new TextBlock
-    {
-        Text = "입력 모드 : 2바이트 기준",
-        FontWeight = FontWeights.Medium,
-        VerticalAlignment = VerticalAlignment.Center,
-        Margin = new Thickness(0, 0, 10, 0)
-    };
-    modePanel.Children.Add(modeLabel);
-
-    RadioButton byteModeRadio = new RadioButton
-    {
-        Content = "10진수",
-        IsChecked = true,
-        GroupName = $"InputMode_{title}",
-        Margin = new Thickness(0, 0, 15, 0),
-        VerticalAlignment = VerticalAlignment.Center
-    };
-    modePanel.Children.Add(byteModeRadio);
-
-    RadioButton bitModeRadio = new RadioButton
-    {
-        Content = "2진수",
-        GroupName = $"InputMode_{title}",
-        Margin = new Thickness(0, 0, 15, 0),
-        VerticalAlignment = VerticalAlignment.Center
-    };
-    modePanel.Children.Add(bitModeRadio);
-
-    cardContent.Children.Add(modePanel);
-
-    Border contentContainer = new Border();
-    Grid.SetRow(contentContainer, 2);
-
-    ScrollViewer scrollViewer = new ScrollViewer
-    {
-        VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-        HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
-    };
-
-    StackPanel registerStack = new StackPanel { Orientation = Orientation.Vertical };
-    Dictionary<DualRegisterModel, FrameworkElement> registerPanels = new Dictionary<DualRegisterModel, FrameworkElement>();
-
-    foreach (var dualRegister in data)
-    {
-        var panel = CreateDualRegisterPanel(dualRegister, byteModeRadio, bitModeRadio);
-        registerStack.Children.Add(panel);
-        registerPanels[dualRegister] = panel;
-    }
-
-    // 바이트 모드 전환 시 UI 갱신
-    byteModeRadio.Checked += (s, e) =>
-    {
-        foreach (var kvp in registerPanels)
-        {
-            UpdateRegisterPanelMode(kvp.Value, true); // 바이트 모드
-        }
-    };
-
-    // 비트 모드 전환 시 UI 갱신 + 레지스터 값 → 비트 텍스트박스 수동 적용
-    bitModeRadio.Checked += (s, e) =>
-    {
-        foreach (var kvp in registerPanels)
-        {
-            var panel = kvp.Value;
-            var tag = panel.Tag;
-            var bitPanel = tag.GetType().GetProperty("BitPanel")?.GetValue(tag) as StackPanel;
-
-            UpdateRegisterPanelMode(panel, false); // 비트 모드
-
-            if (bitPanel != null)
+            Border cardBorder = new Border
             {
-                var grid = bitPanel.Children.OfType<Grid>().FirstOrDefault();
-                if (grid != null)
+                Background = Brushes.White,
+                BorderBrush = new SolidColorBrush(Color.FromRgb(225, 225, 225)),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(6),
+                Margin = new Thickness(0, 0, 0, 4),
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch,
+                Effect = new DropShadowEffect
                 {
-                    for (int bit = 0; bit <= 15; bit++)
-                    {
-                        int bitValue = (kvp.Key.RegisterValue >> bit) & 1;
-                        var tb = grid.Children.OfType<TextBox>().FirstOrDefault(t => (int)t.Tag == bit);
-                        if (tb != null)
-                        {
-                            tb.Text = bitValue.ToString();
-                            UpdateBitTextBoxAppearance(tb, bitValue);
-                        }
-                    }
+                    Color = Color.FromArgb(0x15, 0x00, 0x00, 0x00),
+                    BlurRadius = 6,
+                    ShadowDepth = 1,
+                    Opacity = 0.2
                 }
+            };
+
+            Grid cardContent = new Grid { Margin = new Thickness(12, 8, 12, 8) };
+            cardContent.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 헤더
+            cardContent.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 콘텐츠
+
+            TextBlock header = new TextBlock
+            {
+                Text = title,
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                Foreground = new SolidColorBrush(Color.FromRgb(44, 44, 44)),
+                Margin = new Thickness(0, 0, 0, 8)
+            };
+            Grid.SetRow(header, 0);
+            cardContent.Children.Add(header);
+
+            Border contentContainer = new Border();
+            Grid.SetRow(contentContainer, 1);
+
+            ScrollViewer scrollViewer = new ScrollViewer
+            {
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled
+            };
+
+            StackPanel registerStack = new StackPanel { Orientation = Orientation.Vertical };
+
+            foreach (var dualRegister in data)
+            {
+                var panel = CreateUnifiedRegisterPanel(dualRegister);
+                registerStack.Children.Add(panel);
             }
-        }
-    };
 
-    scrollViewer.Content = registerStack;
-    contentContainer.Child = scrollViewer;
-    cardContent.Children.Add(contentContainer);
-    cardBorder.Child = cardContent;
+            scrollViewer.Content = registerStack;
+            contentContainer.Child = scrollViewer;
+            cardContent.Children.Add(contentContainer);
+            cardBorder.Child = cardContent;
 
-    return cardBorder;
-}
-
-
-        // 듀얼 레지스터 패널 생성 (바이트/비트 모드 전환 가능)
-        private FrameworkElement CreateDualRegisterPanel(DualRegisterModel dualRegister, RadioButton byteMode, RadioButton bitMode)
-        {
-            Border border = new Border();
-            border.Background = new SolidColorBrush(Color.FromRgb(250, 251, 252));
-            border.BorderBrush = new SolidColorBrush(Color.FromRgb(230, 230, 230));
-            border.BorderThickness = new Thickness(1);
-            border.CornerRadius = new CornerRadius(4);
-            border.Margin = new Thickness(0, 2, 0, 2);
-            border.Padding = new Thickness(8);
-
-            Grid grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 주소 정보
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 입력 영역
-
-            // 레지스터 정보
-            TextBlock addressLabel = new TextBlock();
-            addressLabel.Text = $"Register {dualRegister.DisplayAddress} (Number : {dualRegister.ModbusAddress}) - Value : {dualRegister.RegisterValue}";
-            addressLabel.FontWeight = FontWeights.Medium;
-            addressLabel.FontSize = 12;
-            addressLabel.Margin = new Thickness(0, 0, 0, 8);
-            Grid.SetRow(addressLabel, 0);
-            grid.Children.Add(addressLabel);
-
-            // 입력 영역 컨테이너
-            Border inputContainer = new Border();
-            Grid.SetRow(inputContainer, 1);
-
-            // 바이트 입력 패널
-            StackPanel byteInputPanel = CreateByteInputPanel(dualRegister, addressLabel);
-            byteInputPanel.Tag = "ByteInput";
-
-            // 비트 입력 패널  
-            StackPanel bitInputPanel = CreateBitInputPanel(dualRegister, addressLabel);
-            bitInputPanel.Tag = "BitInput";
-            bitInputPanel.Visibility = Visibility.Collapsed;
-
-            // 컨테이너에 두 패널 모두 추가
-            Grid inputGrid = new Grid();
-            inputGrid.Children.Add(byteInputPanel);
-            inputGrid.Children.Add(bitInputPanel);
-
-            inputContainer.Child = inputGrid;
-            grid.Children.Add(inputContainer);
-
-            // 패널에 모드 전환 정보 저장
-            border.Tag = new { BytePanel = byteInputPanel, BitPanel = bitInputPanel, AddressLabel = addressLabel };
-
-            border.Child = grid;
-            return border;
+            return cardBorder;
         }
 
-        private StackPanel CreateByteInputPanel(DualRegisterModel dualRegister, TextBlock addressLabel)
+        // 통합 레지스터 패널 생성 (모든 입력 형태를 한 화면에)
+private FrameworkElement CreateUnifiedRegisterPanel(DualRegisterModel dualRegister)
 {
-    StackPanel panel = new StackPanel();
-    panel.Orientation = Orientation.Horizontal;
-    panel.HorizontalAlignment = HorizontalAlignment.Left;
+    Border border = new Border();
+    border.Background = new SolidColorBrush(Color.FromRgb(250, 251, 252));
+    border.BorderBrush = new SolidColorBrush(Color.FromRgb(230, 230, 230));
+    border.BorderThickness = new Thickness(1);
+    border.CornerRadius = new CornerRadius(4);
+    border.Margin = new Thickness(0, 4, 0, 4);
+    border.Padding = new Thickness(12);
 
-    TextBlock valueLabel = new TextBlock();
-    valueLabel.Text = "값: ";
-    valueLabel.VerticalAlignment = VerticalAlignment.Center;
-    valueLabel.Margin = new Thickness(0, 0, 8, 0);
-    panel.Children.Add(valueLabel);
+    Grid mainGrid = new Grid();
+    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 레지스터 정보
+    mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 모든 입력 및 비트 편집 (한 줄)
 
-    TextBox valueTextBox = new TextBox();
-    valueTextBox.Width = 100;
-    valueTextBox.Height = 25;
-    valueTextBox.Text = dualRegister.RegisterValue.ToString();
-    valueTextBox.VerticalAlignment = VerticalAlignment.Center;
-    valueTextBox.Margin = new Thickness(0, 0, 15, 0);
+    // 레지스터 정보 헤더
+    TextBlock addressLabel = new TextBlock();
+    addressLabel.Text = $"Register {dualRegister.DisplayAddress} (Address: {dualRegister.ModbusAddress}) - Value: {dualRegister.RegisterValue}";
+    addressLabel.FontWeight = FontWeights.SemiBold;
+    addressLabel.FontSize = 13;
+    addressLabel.Foreground = new SolidColorBrush(Color.FromRgb(44, 44, 44));
+    addressLabel.Margin = new Thickness(0, 0, 0, 12);
+    Grid.SetRow(addressLabel, 0);
+    mainGrid.Children.Add(addressLabel);
+
+    // 모든 입력과 비트 편집을 한 줄로 배치
+    StackPanel inputAndBitRow = new StackPanel();
+    inputAndBitRow.Orientation = Orientation.Horizontal;
+    inputAndBitRow.Margin = new Thickness(0, 0, 0, 8);
+    Grid.SetRow(inputAndBitRow, 1);
+
+    // 10진수 입력
+    StackPanel decimalPanel = new StackPanel();
+    decimalPanel.Orientation = Orientation.Horizontal;
+    decimalPanel.Margin = new Thickness(0, 0, 10, 0);
+
+    TextBlock decimalLabel = new TextBlock();
+    decimalLabel.Text = "10진수: ";
+    decimalLabel.VerticalAlignment = VerticalAlignment.Center;
+    decimalLabel.FontWeight = FontWeights.Medium;
+    decimalLabel.Margin = new Thickness(0, 0, 5, 0);
+    decimalPanel.Children.Add(decimalLabel);
+
+    TextBox decimalTextBox = new TextBox();
+    decimalTextBox.Width = 50;
+    decimalTextBox.Height = 26;
+    decimalTextBox.Text = dualRegister.RegisterValue.ToString();
+    decimalTextBox.VerticalAlignment = VerticalAlignment.Center;
+    decimalTextBox.Tag = "DecimalInput";
+    decimalTextBox.TabIndex = 1;
+    decimalPanel.Children.Add(decimalTextBox);
+
+    inputAndBitRow.Children.Add(decimalPanel);
+
+    // 16진수 입력
+    StackPanel hexPanel = new StackPanel();
+    hexPanel.Orientation = Orientation.Horizontal;
+    hexPanel.Margin = new Thickness(0, 0, 10, 0);
 
     TextBlock hexLabel = new TextBlock();
-    hexLabel.Text = $"(0x{dualRegister.RegisterValue:X4})";
+    hexLabel.Text = "16진수: ";
     hexLabel.VerticalAlignment = VerticalAlignment.Center;
-    hexLabel.Foreground = Brushes.Gray;
-    hexLabel.FontSize = 10;
+    hexLabel.FontWeight = FontWeights.Medium;
+    hexLabel.Margin = new Thickness(0, 0, 5, 0);
+    hexPanel.Children.Add(hexLabel);
+
+    TextBox hexTextBox = new TextBox();
+    hexTextBox.Width = 50;
+    hexTextBox.Height = 26;
+    hexTextBox.Text = $"0x{dualRegister.RegisterValue:X4}";
+    hexTextBox.VerticalAlignment = VerticalAlignment.Center;
+    hexTextBox.Tag = "HexInput";
+    hexTextBox.TabIndex = 2;
+    hexPanel.Children.Add(hexTextBox);
+
+    inputAndBitRow.Children.Add(hexPanel);
+
+    // 문자열 입력
+    StackPanel stringPanel = new StackPanel();
+    stringPanel.Orientation = Orientation.Horizontal;
+    stringPanel.Margin = new Thickness(0, 0, 20, 0);
+
+    TextBlock stringLabel = new TextBlock();
+    stringLabel.Text = "문자열: ";
+    stringLabel.VerticalAlignment = VerticalAlignment.Center;
+    stringLabel.FontWeight = FontWeights.Medium;
+    stringLabel.Margin = new Thickness(0, 0, 5, 0);
+    stringPanel.Children.Add(stringLabel);
+
+    TextBox stringTextBox = new TextBox();
+    stringTextBox.Width = 35;
+    stringTextBox.Height = 26;
+    stringTextBox.MaxLength = 2;
+    stringTextBox.Text = ExtractStringFromRegister(dualRegister.RegisterValue);
+    stringTextBox.VerticalAlignment = VerticalAlignment.Center;
+    stringTextBox.Tag = "StringInput";
+    stringTextBox.TabIndex = 3;
+    stringPanel.Children.Add(stringTextBox);
+
+    inputAndBitRow.Children.Add(stringPanel);
+
+    // 2진수 표시 (읽기전용)
+    StackPanel binaryPanel = new StackPanel();
+    binaryPanel.Orientation = Orientation.Horizontal;
+    binaryPanel.Margin = new Thickness(0, 0, 20, 0);
 
     TextBlock binaryLabel = new TextBlock();
-    binaryLabel.Text = $"({Convert.ToString(dualRegister.RegisterValue & 0xFFFF, 2).PadLeft(16, '0')})";
+    binaryLabel.Text = "2진수: ";
     binaryLabel.VerticalAlignment = VerticalAlignment.Center;
-    binaryLabel.Foreground = Brushes.Blue;
-    binaryLabel.FontSize = 10;
-    binaryLabel.FontFamily = new FontFamily("Consolas");
-    binaryLabel.Margin = new Thickness(10, 0, 0, 0);
+    binaryLabel.FontWeight = FontWeights.Medium;
+    binaryLabel.Margin = new Thickness(0, 0, 5, 0);
+    binaryPanel.Children.Add(binaryLabel);
 
-    bool isExternalUpdate = false;
+    TextBox binaryDisplayTextBox = new TextBox();
+    binaryDisplayTextBox.Text = Convert.ToString(dualRegister.RegisterValue & 0xFFFF, 2).PadLeft(16, '0');
+    binaryDisplayTextBox.IsReadOnly = true;
+    binaryDisplayTextBox.BorderThickness = new Thickness(1);
+    binaryDisplayTextBox.Background = new SolidColorBrush(Color.FromRgb(248, 249, 250));
+    binaryDisplayTextBox.FontFamily = new FontFamily("Consolas");
+    binaryDisplayTextBox.FontSize = 15;
+    binaryDisplayTextBox.Width = 150;
+    binaryDisplayTextBox.Height = 26;
+    binaryDisplayTextBox.VerticalAlignment = VerticalAlignment.Center;
+    binaryDisplayTextBox.Cursor = System.Windows.Input.Cursors.IBeam;
+    binaryDisplayTextBox.Tag = "BinaryDisplay";
+    binaryPanel.Children.Add(binaryDisplayTextBox);
 
-    Action processInput = () =>
+    inputAndBitRow.Children.Add(binaryPanel);
+
+    // 비트 편집 영역 (오른쪽에 배치)
+    StackPanel bitSection = new StackPanel();
+    bitSection.Orientation = Orientation.Horizontal;
+    bitSection.VerticalAlignment = VerticalAlignment.Center;
+
+    TextBlock bitLabel = new TextBlock();
+    bitLabel.Text = "비트 편집: ";
+    bitLabel.VerticalAlignment = VerticalAlignment.Center;
+    bitLabel.FontWeight = FontWeights.Medium;
+    bitLabel.Margin = new Thickness(0, 0, 5, 0);
+    bitSection.Children.Add(bitLabel);
+
+    // 비트 편집 그리드 - 원본과 동일한 방식으로 생성
+    Grid bitGrid = CreateBitEditGrid(dualRegister);
+    bitSection.Children.Add(bitGrid);
+    
+    inputAndBitRow.Children.Add(bitSection);
+    mainGrid.Children.Add(inputAndBitRow);
+
+    // 업데이트 플래그
+    bool isInternalUpdate = false;
+
+    // 10진수 입력 이벤트
+    Action processDecimalInput = () =>
     {
-        string inputText = valueTextBox.Text.Trim();
-
-        if (string.IsNullOrEmpty(inputText))
-        {
-            inputText = "0";
-            valueTextBox.Text = "0";
-        }
-
+        if (isInternalUpdate) return;
+        
+        string inputText = decimalTextBox.Text.Trim();
         if (int.TryParse(inputText, out int value))
         {
-            if (value < 0) value = 0;
-            if (value > 65535) value = 65535;
-
+            value = Math.Max(0, Math.Min(65535, value));
             if (value != dualRegister.RegisterValue)
             {
-                isExternalUpdate = true;
+                isInternalUpdate = true;
                 dualRegister.RegisterValue = value;
-
-                hexLabel.Text = $"(0x{value:X4})";
-                binaryLabel.Text = $"({Convert.ToString(value & 0xFFFF, 2).PadLeft(16, '0')})";
-                addressLabel.Text = $"Register {dualRegister.DisplayAddress} (Protocol: {dualRegister.ModbusAddress}) - Value: {value}";
-                valueTextBox.Text = value.ToString();
-
-                // 즉시 비트 UI 업데이트
-                UpdateBitUIIfInBitMode(dualRegister);
                 
+                // 범위 제한으로 값이 변경된 경우 텍스트박스도 업데이트
+                if (decimalTextBox.Text != value.ToString())
+                {
+                    decimalTextBox.Text = value.ToString();
+                }
+                
+                UpdateAllDisplays(dualRegister, hexTextBox, stringTextBox, binaryDisplayTextBox, bitGrid, addressLabel);
                 UpdateCurrentDeviceDataStore();
-                isExternalUpdate = false;
+                isInternalUpdate = false;
             }
         }
         else
         {
-            isExternalUpdate = true;
-            valueTextBox.Text = dualRegister.RegisterValue.ToString();
-            isExternalUpdate = false;
+            decimalTextBox.Text = dualRegister.RegisterValue.ToString();
         }
     };
 
-    valueTextBox.KeyDown += (sender, e) =>
+    // 16진수 입력 이벤트
+    Action processHexInput = () =>
     {
-        if (e.Key == System.Windows.Input.Key.Enter)
+        if (isInternalUpdate) return;
+        
+        string inputText = hexTextBox.Text.Trim().Replace("0x", "").Replace("0X", "");
+        if (int.TryParse(inputText, System.Globalization.NumberStyles.HexNumber, null, out int value))
         {
-            processInput();
-            e.Handled = true;
+            value = Math.Max(0, Math.Min(65535, value));
+            if (value != dualRegister.RegisterValue)
+            {
+                isInternalUpdate = true;
+                dualRegister.RegisterValue = value;
+                UpdateAllDisplays(dualRegister, decimalTextBox, stringTextBox, binaryDisplayTextBox, bitGrid, addressLabel);
+                UpdateCurrentDeviceDataStore();
+                isInternalUpdate = false;
+            }
+        }
+        else
+        {
+            hexTextBox.Text = $"0x{dualRegister.RegisterValue:X4}";
         }
     };
 
-    valueTextBox.LostFocus += (sender, e) =>
+    // 문자열 입력 이벤트
+    Action processStringInput = () =>
     {
-        processInput();
+        if (isInternalUpdate) return;
+        
+        int value = ConvertStringToRegisterValue(stringTextBox.Text);
+        if (value != dualRegister.RegisterValue)
+        {
+            isInternalUpdate = true;
+            dualRegister.RegisterValue = value;
+            UpdateAllDisplays(dualRegister, decimalTextBox, hexTextBox, binaryDisplayTextBox, bitGrid, addressLabel);
+            UpdateCurrentDeviceDataStore();
+            isInternalUpdate = false;
+        }
     };
 
+    // 이벤트 핸들러 등록
+    decimalTextBox.KeyDown += (s, e) => 
+    { 
+        if (e.Key == System.Windows.Input.Key.Enter) 
+        { 
+            processDecimalInput(); 
+            e.Handled = true; // 포커스 이동 완전 차단
+            // 포커스를 현재 텍스트박스에 유지
+            Dispatcher.BeginInvoke(new Action(() => 
+            {
+                decimalTextBox.Focus();
+                decimalTextBox.SelectAll();
+            }), System.Windows.Threading.DispatcherPriority.Input);
+        } 
+    };
+    decimalTextBox.LostFocus += (s, e) => processDecimalInput();
+
+    hexTextBox.KeyDown += (s, e) => 
+    { 
+        if (e.Key == System.Windows.Input.Key.Enter) 
+        { 
+            processHexInput(); 
+            e.Handled = true; // 포커스 이동 완전 차단
+            // 포커스를 현재 텍스트박스에 유지
+            Dispatcher.BeginInvoke(new Action(() => 
+            {
+                hexTextBox.Focus();
+                hexTextBox.SelectAll();
+            }), System.Windows.Threading.DispatcherPriority.Input);
+        } 
+    };
+    hexTextBox.LostFocus += (s, e) => processHexInput();
+
+    stringTextBox.KeyDown += (s, e) => 
+    { 
+        if (e.Key == System.Windows.Input.Key.Enter) 
+        { 
+            processStringInput(); 
+            e.Handled = true; // 포커스 이동 완전 차단
+            // 포커스를 현재 텍스트박스에 유지
+            Dispatcher.BeginInvoke(new Action(() => 
+            {
+                stringTextBox.Focus();
+                stringTextBox.SelectAll();
+            }), System.Windows.Threading.DispatcherPriority.Input);
+        } 
+    };
+    stringTextBox.LostFocus += (s, e) => processStringInput();
+
+    // 외부에서 레지스터 값이 변경될 때 UI 업데이트
     dualRegister.PropertyChanged += (sender, e) =>
     {
-        if (e.PropertyName == nameof(DualRegisterModel.RegisterValue) && !isExternalUpdate)
+        if (e.PropertyName == nameof(DualRegisterModel.RegisterValue) && !isInternalUpdate)
         {
-            if (!valueTextBox.IsFocused)
-            {
-                isExternalUpdate = true;
-                valueTextBox.Text = dualRegister.RegisterValue.ToString();
-                isExternalUpdate = false;
-            }
-
-            hexLabel.Text = $"(0x{dualRegister.RegisterValue:X4})";
-            binaryLabel.Text = $"({Convert.ToString(dualRegister.RegisterValue & 0xFFFF, 2).PadLeft(16, '0')})";
-            addressLabel.Text = $"Register {dualRegister.DisplayAddress} (Protocol: {dualRegister.ModbusAddress}) - Value: {dualRegister.RegisterValue}";
-
-            // PropertyChanged를 통한 업데이트에서도 비트 UI 업데이트
-            UpdateBitUIIfInBitMode(dualRegister);
+            isInternalUpdate = true;
+            
+            if (!decimalTextBox.IsFocused)
+                decimalTextBox.Text = dualRegister.RegisterValue.ToString();
+            if (!hexTextBox.IsFocused)
+                hexTextBox.Text = $"0x{dualRegister.RegisterValue:X4}";
+            if (!stringTextBox.IsFocused)
+                stringTextBox.Text = ExtractStringFromRegister(dualRegister.RegisterValue);
+                
+            binaryDisplayTextBox.Text = Convert.ToString(dualRegister.RegisterValue & 0xFFFF, 2).PadLeft(16, '0');
+            addressLabel.Text = $"Register {dualRegister.DisplayAddress} (Address: {dualRegister.ModbusAddress}) - Value: {dualRegister.RegisterValue}";
+            
+            UpdateBitGridFromRegister(dualRegister, bitGrid);
+            
+            isInternalUpdate = false;
         }
     };
 
-    panel.Children.Add(valueTextBox);
-    panel.Children.Add(hexLabel);
-    panel.Children.Add(binaryLabel);
-
-    return panel;
+    // isInternalUpdate 플래그를 비트 그리드 핸들러에서도 사용할 수 있도록 연결
+    bitGrid.Tag = new Func<bool>(() => isInternalUpdate);
+    
+    border.Child = mainGrid;
+    return border;
 }
 
-// MainWindow 클래스에 추가할 메서드
-private void UpdateBitUIIfInBitMode(DualRegisterModel dualRegister)
-{
-    System.Diagnostics.Debug.WriteLine($"UpdateBitUIIfInBitMode 호출됨 - RegisterValue: {dualRegister.RegisterValue}");
-    
-    // 현재 선택된 탭에서 해당 레지스터의 비트 패널 찾기
-    TabItem selectedTab = DeviceTabControl.SelectedItem as TabItem;
-    if (selectedTab?.Content is Grid mainGrid)
-    {
-        System.Diagnostics.Debug.WriteLine("MainGrid 찾음");
-        
-        foreach (var child in mainGrid.Children)
+        // 모든 표시 업데이트
+        private void UpdateAllDisplays(DualRegisterModel dualRegister, params object[] controls)
         {
-            if (child is Border cardBorder && cardBorder.Child is Grid cardContent)
+            foreach (var control in controls)
             {
-                System.Diagnostics.Debug.WriteLine("CardBorder 찾음");
-                
-                // 비트 모드 라디오 버튼 찾기
-                var modePanel = cardContent.Children.OfType<StackPanel>()
-                    .FirstOrDefault(sp => sp.Children.OfType<RadioButton>().Any());
-                
-                if (modePanel != null)
+                if (control is TextBox textBox)
                 {
-                    var bitModeRadio = modePanel.Children.OfType<RadioButton>()
-                        .FirstOrDefault(rb => rb.Content.ToString() == "개별 비트");
-                    
-                    System.Diagnostics.Debug.WriteLine($"비트모드 라디오 상태: {bitModeRadio?.IsChecked}");
-                    
-                    // 비트 모드가 선택된 경우에만 비트 UI 업데이트
-                    if (bitModeRadio?.IsChecked == true)
+                    string tag = textBox.Tag?.ToString();
+                    if (!textBox.IsFocused)
                     {
-                        System.Diagnostics.Debug.WriteLine("비트 모드 활성화됨");
-                        
-                        // 레지스터 패널들 찾기
-                        var contentContainer = cardContent.Children.OfType<Border>().LastOrDefault();
-                        if (contentContainer?.Child is ScrollViewer scrollViewer && 
-                            scrollViewer.Content is StackPanel registerStack)
+                        switch (tag)
                         {
-                            System.Diagnostics.Debug.WriteLine($"RegisterStack 찾음, 패널 수: {registerStack.Children.Count}");
-                            
-                            foreach (var registerPanel in registerStack.Children.OfType<Border>())
-                            {
-                                var tag = registerPanel.Tag;
-                                if (tag != null)
-                                {
-                                    var bitPanel = tag.GetType().GetProperty("BitPanel")?.GetValue(tag) as StackPanel;
-                                    System.Diagnostics.Debug.WriteLine($"BitPanel 가시성: {bitPanel?.Visibility}");
-                                    
-                                    if (bitPanel?.Visibility == Visibility.Visible)
-                                    {
-                                        // 비트 그리드 찾기
-                                        var bitGrid = bitPanel.Children.OfType<Grid>().FirstOrDefault();
-                                        if (bitGrid != null)
-                                        {
-                                            // 해당 레지스터인지 확인 후 비트 텍스트박스들 업데이트
-                                            var addressLabel = tag.GetType().GetProperty("AddressLabel")?.GetValue(tag) as TextBlock;
-                                            System.Diagnostics.Debug.WriteLine($"AddressLabel 텍스트: {addressLabel?.Text}");
-                                            System.Diagnostics.Debug.WriteLine($"찾는 레지스터: Register {dualRegister.DisplayAddress}");
-                                            
-                                            if (addressLabel?.Text.Contains($"Register {dualRegister.DisplayAddress}") == true)
-                                            {
-                                                System.Diagnostics.Debug.WriteLine("해당 레지스터 발견! 비트 업데이트 시작");
-                                                
-                                                for (int bit = 0; bit <= 15; bit++)
-                                                {
-                                                    int bitValue = (dualRegister.RegisterValue >> bit) & 1;
-                                                    var tb = bitGrid.Children.OfType<TextBox>()
-                                                        .FirstOrDefault(t => (int)t.Tag == bit);
-                                                    if (tb != null)
-                                                    {
-                                                        System.Diagnostics.Debug.WriteLine($"비트 {bit}: {tb.Text} -> {bitValue}");
-                                                        // 항상 업데이트 (조건 제거)
-                                                        tb.Text = bitValue.ToString();
-                                                        UpdateBitTextBoxAppearance(tb, bitValue);
-                                                    }
-                                                }
-                                                System.Diagnostics.Debug.WriteLine("비트 업데이트 완료");
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            case "DecimalInput":
+                                textBox.Text = dualRegister.RegisterValue.ToString();
+                                break;
+                            case "HexInput":
+                                textBox.Text = $"0x{dualRegister.RegisterValue:X4}";
+                                break;
+                            case "StringInput":
+                                textBox.Text = ExtractStringFromRegister(dualRegister.RegisterValue);
+                                break;
+                            case "BinaryDisplay":
+                                textBox.Text = Convert.ToString(dualRegister.RegisterValue & 0xFFFF, 2).PadLeft(16, '0');
+                                break;
                         }
                     }
                 }
+                else if (control is Grid bitGrid)
+                {
+                    UpdateBitGridFromRegister(dualRegister, bitGrid);
+                }
+                else if (control is TextBlock addressLabel)
+                {
+                    addressLabel.Text = $"Register {dualRegister.DisplayAddress} (Address: {dualRegister.ModbusAddress}) - Value: {dualRegister.RegisterValue}";
+                }
             }
         }
-    }
-    else
-    {
-        System.Diagnostics.Debug.WriteLine("MainGrid를 찾을 수 없음");
-    }
-}
 
-        // 비트 입력 패널 생성 (내림차순 15-0) - Grid 레이아웃으로 정확한 정렬
-        private StackPanel CreateBitInputPanel(DualRegisterModel dualRegister, TextBlock addressLabel)
+        // 비트 편집 그리드 생성
+        private Grid CreateBitEditGrid(DualRegisterModel dualRegister)
         {
-            StackPanel mainPanel = new StackPanel();
-            mainPanel.Orientation = Orientation.Vertical;
-
-            // Grid를 사용하여 정확한 정렬
             Grid bitGrid = new Grid();
             bitGrid.HorizontalAlignment = HorizontalAlignment.Left;
 
-            // 행 정의 (비트 번호, 입력 박스)
+            // 행 정의
             bitGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 비트 번호
-            bitGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 입력 박스
+            bitGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 비트 값
 
-            // 열 정의 (16개 비트용)
-            for (int i = 0; i <= 15; i++) // 0부터 15까지 16개 열 생성
+            // 열 정의 (16개 비트)
+            for (int i = 0; i < 16; i++)
             {
-                bitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(25) });
+                bitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
             }
 
-            // 비트 번호 생성 (15부터 0까지)
-            for (int bit = 15; bit >= 0; bit--) // 내림차순으로 변경
+            // 비트 번호 라벨 (15부터 0까지)
+            for (int bit = 15; bit >= 0; bit--)
             {
-                TextBlock bitNumber = new TextBlock();
-                bitNumber.Text = bit.ToString();
-                bitNumber.FontSize = 8;
-                bitNumber.FontWeight = FontWeights.Bold;
-                bitNumber.Foreground = Brushes.DarkBlue;
-                bitNumber.TextAlignment = TextAlignment.Center;
-                bitNumber.VerticalAlignment = VerticalAlignment.Center;
-                bitNumber.Margin = new Thickness(1, 0, 1, 2);
+                TextBlock bitNumberLabel = new TextBlock();
+                bitNumberLabel.Text = bit.ToString();
+                bitNumberLabel.FontSize = 8;
+                bitNumberLabel.FontWeight = FontWeights.Bold;
+                bitNumberLabel.Foreground = Brushes.DarkBlue;
+                bitNumberLabel.TextAlignment = TextAlignment.Center;
+                bitNumberLabel.HorizontalAlignment = HorizontalAlignment.Center;
+                bitNumberLabel.Margin = new Thickness(1, -10, 1, 0);
                 
-                Grid.SetRow(bitNumber, 0);
-                Grid.SetColumn(bitNumber, 15 - bit); // 열 순서 조정 (15 -> 0열, 0 -> 15열)
-                bitGrid.Children.Add(bitNumber);
+                //Grid.SetRow(bitNumberLabel, 0);
+                
+                Grid.SetColumn(bitNumberLabel, 15 - bit);
+                bitGrid.Children.Add(bitNumberLabel);
             }
 
-            // 비트 입력 텍스트박스 생성 (15부터 0까지)
-            for (int bit = 15; bit >= 0; bit--) // 내림차순으로 변경
+            // 비트 값 텍스트박스 (15부터 0까지)
+            for (int bit = 15; bit >= 0; bit--)
             {
                 TextBox bitTextBox = new TextBox();
-                bitTextBox.Width = 25;
-                bitTextBox.Height = 25;
+                bitTextBox.Width = 26;
+                bitTextBox.Height = 26;
                 bitTextBox.FontSize = 11;
                 bitTextBox.FontWeight = FontWeights.Bold;
                 bitTextBox.TextAlignment = TextAlignment.Center;
                 bitTextBox.VerticalContentAlignment = VerticalAlignment.Center;
                 bitTextBox.MaxLength = 1;
-                bitTextBox.Tag = bit; // 비트 위치는 그대로 0-15 유지
+                bitTextBox.Tag = bit;
+                bitTextBox.TabIndex = 100 + (15 - bit); // 비트는 훨씬 큰 TabIndex로 설정하여 자동 포커스 방지
+                bitTextBox.IsTabStop = false; // Tab으로 이동 불가능하게 설정
 
-                // 현재 레지스터 값에서 해당 비트 추출
                 int bitValue = (dualRegister.RegisterValue >> bit) & 1;
                 bitTextBox.Text = bitValue.ToString();
-
-                // 비트 값에 따라 색상 변경
+                Grid.SetRow(bitTextBox, 0);
                 UpdateBitTextBoxAppearance(bitTextBox, bitValue);
 
-                // 텍스트 변경 이벤트
+                // 비트 변경 이벤트
                 bitTextBox.TextChanged += (sender, e) =>
                 {
+                    // *** 수정된 부분 ***
+                    // isInternalUpdate 상태를 가져오기 위해 상위 컨텍스트를 탐색
+                    var isInternalUpdateFunc = bitGrid.Tag as Func<bool>;
+                    if (isInternalUpdateFunc != null && isInternalUpdateFunc())
+                    {
+                        return; // 내부 업데이트 중에는 이벤트를 무시하여 연쇄 반응 방지
+                    }
+
                     var tb = sender as TextBox;
                     if (tb.Text == "0" || tb.Text == "1")
                     {
                         int newBitValue = int.Parse(tb.Text);
                         UpdateBitTextBoxAppearance(tb, newBitValue);
-
-                        // 비트 변경 후 레지스터 업데이트
-                        UpdateRegisterFromBits(dualRegister, bitGrid);
-                        addressLabel.Text = $"Register {dualRegister.DisplayAddress} (Protocol: {dualRegister.ModbusAddress}) - Value: {dualRegister.RegisterValue}";
+                        UpdateRegisterFromBitGrid(dualRegister, bitGrid);
                         UpdateCurrentDeviceDataStore();
                     }
                     else if (!string.IsNullOrEmpty(tb.Text))
                     {
-                        tb.Text = "0";
-                        UpdateBitTextBoxAppearance(tb, 0);
+                        // 잘못된 입력은 원래값으로 되돌리기
+                        int originalBitValue = (dualRegister.RegisterValue >> (int)tb.Tag) & 1;
+                        tb.Text = originalBitValue.ToString();
+                        UpdateBitTextBoxAppearance(tb, originalBitValue);
                     }
                 };
 
@@ -766,40 +804,163 @@ private void UpdateBitUIIfInBitMode(DualRegisterModel dualRegister)
                     tb.SelectAll();
                 };
 
-                // 더블클릭으로 비트 토글
+                // 키 입력 처리
+                bitTextBox.KeyDown += (sender, e) =>
+                {
+                    var tb = sender as TextBox;
+                    
+                    if (e.Key == System.Windows.Input.Key.D0 || e.Key == System.Windows.Input.Key.NumPad0)
+                    {
+                        tb.Text = "0";
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.D1 || e.Key == System.Windows.Input.Key.NumPad1)
+                    {
+                        tb.Text = "1";
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.Enter)
+                    {
+                        // Enter 키를 눌렀을 때 다음 비트로 이동 (왼쪽으로)
+                        int currentBit = (int)tb.Tag;
+                        if (currentBit > 0) // 0번 비트가 아닌 경우
+                        {
+                            // 다음 비트 (현재 비트 - 1) 찾기
+                            var nextBitTextBox = bitGrid.Children.OfType<TextBox>()
+                                .FirstOrDefault(t => (int)t.Tag == currentBit - 1);
+                            if (nextBitTextBox != null)
+                            {
+                                nextBitTextBox.Focus();
+                                nextBitTextBox.SelectAll();
+                            }
+                        }
+                        else
+                        {
+                            // 0번 비트에서 Enter를 누르면 포커스를 벗어남 (10진수 입력으로)
+                            var decimalTextBox = FindDecimalTextBox(bitGrid);
+                            if (decimalTextBox != null)
+                            {
+                                decimalTextBox.Focus();
+                                decimalTextBox.SelectAll();
+                            }
+                        }
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.Left)
+                    {
+                        // 왼쪽 화살표 키로 다음 비트로 이동
+                        int currentBit = (int)tb.Tag;
+                        if (currentBit > 0)
+                        {
+                            var nextBitTextBox = bitGrid.Children.OfType<TextBox>()
+                                .FirstOrDefault(t => (int)t.Tag == currentBit - 1);
+                            if (nextBitTextBox != null)
+                            {
+                                nextBitTextBox.Focus();
+                                nextBitTextBox.SelectAll();
+                            }
+                        }
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.Right)
+                    {
+                        // 오른쪽 화살표 키로 이전 비트로 이동
+                        int currentBit = (int)tb.Tag;
+                        if (currentBit < 15)
+                        {
+                            var prevBitTextBox = bitGrid.Children.OfType<TextBox>()
+                                .FirstOrDefault(t => (int)t.Tag == currentBit + 1);
+                            if (prevBitTextBox != null)
+                            {
+                                prevBitTextBox.Focus();
+                                prevBitTextBox.SelectAll();
+                            }
+                        }
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.Tab)
+                    {
+                        // Tab 키는 기본 동작 허용 (다른 컨트롤로 이동)
+                    }
+                    else if (e.Key == System.Windows.Input.Key.Delete || 
+                             e.Key == System.Windows.Input.Key.Back)
+                    {
+                        // Delete/Backspace는 0으로 설정
+                        tb.Text = "0";
+                        e.Handled = true;
+                    }
+                    else if (e.Key == System.Windows.Input.Key.Escape)
+                    {
+                        // ESC 키로 비트 편집 영역에서 벗어남
+                        var decimalTextBox = FindDecimalTextBox(bitGrid);
+                        if (decimalTextBox != null)
+                        {
+                            decimalTextBox.Focus();
+                        }
+                        e.Handled = true;
+                    }
+                    else
+                    {
+                        // 다른 키는 차단
+                        e.Handled = true;
+                    }
+                };
+
+                // 더블클릭으로 토글
                 bitTextBox.MouseDoubleClick += (sender, e) =>
                 {
                     var tb = sender as TextBox;
-                    int currentValue = int.TryParse(tb.Text, out int val) ? val : 0;
-                    tb.Text = (currentValue == 0) ? "1" : "0";
+                    tb.Text = (tb.Text == "0") ? "1" : "0";
                 };
 
                 Grid.SetRow(bitTextBox, 1);
-                Grid.SetColumn(bitTextBox, 15 - bit); // 열 순서 조정 (15 -> 0열, 0 -> 15열)
+                Grid.SetColumn(bitTextBox, 15 - bit);
                 bitGrid.Children.Add(bitTextBox);
             }
 
-            // 레지스터 값 변경 시 비트 UI 업데이트
-            dualRegister.PropertyChanged += (sender, e) =>
+            return bitGrid;
+        }
+
+        // 비트 그리드에서 레지스터 값 업데이트
+        private void UpdateRegisterFromBitGrid(DualRegisterModel dualRegister, Grid bitGrid)
+        {
+            int newValue = 0;
+            
+            foreach (TextBox textBox in bitGrid.Children.OfType<TextBox>())
             {
-                if (e.PropertyName == nameof(DualRegisterModel.RegisterValue))
+                if (int.TryParse(textBox.Text, out int bitValue) && (bitValue == 0 || bitValue == 1))
                 {
-                    for (int bit = 15; bit >= 0; bit--) // 내림차순으로 변경
+                    int bitPosition = (int)textBox.Tag;
+                    if (bitValue == 1)
                     {
-                        int bitValue = (dualRegister.RegisterValue >> bit) & 1;
-                        var textBox = bitGrid.Children.OfType<TextBox>().FirstOrDefault(tb => (int)tb.Tag == bit);
-                        if (textBox != null && textBox.Text != bitValue.ToString())
-                        {
-                            textBox.Text = bitValue.ToString();
-                            UpdateBitTextBoxAppearance(textBox, bitValue);
-                        }
+                        newValue |= (1 << bitPosition);
                     }
                 }
-            };
+            }
+            
+            // 값이 실제로 변경된 경우에만 업데이트
+            if (newValue != dualRegister.RegisterValue)
+            {
+                dualRegister.RegisterValue = newValue;
+            }
+        }
 
-            mainPanel.Children.Add(bitGrid);
-
-            return mainPanel;
+        // 레지스터에서 비트 그리드 업데이트
+        private void UpdateBitGridFromRegister(DualRegisterModel dualRegister, Grid bitGrid)
+        {
+            foreach (TextBox textBox in bitGrid.Children.OfType<TextBox>())
+            {
+                if (textBox.IsFocused) continue; // 포커스된 텍스트박스는 업데이트하지 않음
+                
+                int bitPosition = (int)textBox.Tag;
+                int bitValue = (dualRegister.RegisterValue >> bitPosition) & 1;
+                
+                if (textBox.Text != bitValue.ToString())
+                {
+                    textBox.Text = bitValue.ToString();
+                    UpdateBitTextBoxAppearance(textBox, bitValue);
+                }
+            }
         }
 
         // 비트 텍스트박스 외관 업데이트
@@ -819,50 +980,92 @@ private void UpdateBitUIIfInBitMode(DualRegisterModel dualRegister)
             }
         }
 
-        // 레지스터 패널 모드 업데이트
-        private void UpdateRegisterPanelMode(FrameworkElement panel, bool isByteMode)
+        // 레지스터 값에서 문자열 추출
+        private string ExtractStringFromRegister(int registerValue)
         {
-            if (panel.Tag is System.Dynamic.ExpandoObject)
-                return;
-
-            var tagData = panel.Tag;
-            var bytePanel = tagData.GetType().GetProperty("BytePanel")?.GetValue(tagData) as StackPanel;
-            var bitPanel = tagData.GetType().GetProperty("BitPanel")?.GetValue(tagData) as StackPanel;
-
-            if (bytePanel != null && bitPanel != null)
+            StringBuilder sb = new StringBuilder();
+            
+            // 상위 바이트 (첫 번째 문자)
+            char char1 = (char)((registerValue >> 8) & 0xFF);
+            if (char1 >= 32 && char1 <= 126)
             {
-                if (isByteMode)
+                sb.Append(char1);
+            }
+            
+            // 하위 바이트 (두 번째 문자)
+            char char2 = (char)(registerValue & 0xFF);
+            if (char2 >= 32 && char2 <= 126)
+            {
+                sb.Append(char2);
+            }
+            
+            return sb.ToString();
+        }
+
+        // 문자열을 레지스터 값으로 변환
+        private int ConvertStringToRegisterValue(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return 0;
+            
+            int value = 0;
+            
+            // 첫 번째 문자 (상위 바이트)
+            if (input.Length >= 1)
+            {
+                value |= ((int)input[0] << 8);
+            }
+            
+            // 두 번째 문자 (하위 바이트)
+            if (input.Length >= 2)
+            {
+                value |= (int)input[1];
+            }
+            
+            return value & 0xFFFF;
+        }
+
+        // 10진수 텍스트박스 찾기 헬퍼 메소드
+        private TextBox FindDecimalTextBox(Grid bitGrid)
+        {
+            // 비트 그리드의 부모들을 타고 올라가서 10진수 텍스트박스 찾기
+            var parent = bitGrid.Parent;
+            while (parent != null)
+            {
+                if (parent is FrameworkElement element)
                 {
-                    bytePanel.Visibility = Visibility.Visible;
-                    bitPanel.Visibility = Visibility.Collapsed;
+                    var decimalTextBox = FindChildTextBox(element, "DecimalInput");
+                    if (decimalTextBox != null)
+                        return decimalTextBox;
+                    parent = element.Parent;
                 }
                 else
                 {
-                    bytePanel.Visibility = Visibility.Collapsed;
-                    bitPanel.Visibility = Visibility.Visible;
+                    break;
                 }
             }
+            return null;
         }
 
-        // 비트에서 레지스터 값 업데이트 (Grid 버전)
-        private void UpdateRegisterFromBits(DualRegisterModel dualRegister, Grid bitGrid)
+        // 자식 요소에서 태그로 텍스트박스 찾기
+        private TextBox FindChildTextBox(DependencyObject parent, string tag)
         {
-            int newValue = 0;
+            if (parent == null) return null;
 
-            // 비트 패널의 텍스트박스들을 순회하며 레지스터 값 계산
-            foreach (TextBox textBox in bitGrid.Children.OfType<TextBox>())
+            for (int i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(parent); i++)
             {
-                if (int.TryParse(textBox.Text, out int bitValue) && (bitValue == 0 || bitValue == 1))
+                var child = System.Windows.Media.VisualTreeHelper.GetChild(parent, i);
+                
+                if (child is TextBox textBox && textBox.Tag?.ToString() == tag)
                 {
-                    int bitPosition = (int)textBox.Tag; // Tag에 저장된 비트 위치 사용
-                    if (bitValue == 1)
-                    {
-                        newValue |= (1 << bitPosition);
-                    }
+                    return textBox;
                 }
-            }
 
-            dualRegister.RegisterValue = newValue;
+                var result = FindChildTextBox(child, tag);
+                if (result != null)
+                    return result;
+            }
+            return null;
         }
 
         // Coil용 카드 생성 (기존 방식)
@@ -1524,6 +1727,7 @@ private void UpdateBitUIIfInBitMode(DualRegisterModel dualRegister)
                 }
             }
         }
+        
 
         private void UpdateCurrentDeviceUI(DataStoreEventArgs e)
         {
@@ -1606,4 +1810,6 @@ private void UpdateBitUIIfInBitMode(DualRegisterModel dualRegister)
             }));
         }
     }
+    
+    
 }
