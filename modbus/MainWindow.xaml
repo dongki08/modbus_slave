@@ -112,10 +112,10 @@
             <Setter Property="Foreground" Value="#666666"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="BorderBrush" Value="#E1E1E1"/>
-            <Setter Property="Padding" Value="6,6"/>               <!-- 버튼 내부 여백 (좌우16px, 상하8px) -->
-            <Setter Property="Margin" Value="2,0"/>                 <!-- 버튼 외부 여백 -->
-            <Setter Property="FontWeight" Value="Medium"/>          <!-- 폰트 굵기 -->
-            <Setter Property="FontSize" Value="16"/>                <!-- 폰트 크기 -->
+            <Setter Property="Padding" Value="6,6"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="16"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
@@ -235,80 +235,6 @@
             <Setter Property="Padding" Value="12,8,32,8"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Height" Value="36"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ComboBox">
-                        <Grid>
-                            <!-- 메인 보더 -->
-                            <Border x:Name="MainBorder"
-                            Background="{TemplateBinding Background}" 
-                            BorderBrush="{TemplateBinding BorderBrush}" 
-                            BorderThickness="{TemplateBinding BorderThickness}" 
-                            CornerRadius="4"/>
-
-                            <!-- 토글 버튼 (전체 영역) -->
-                            <ToggleButton x:Name="ToggleButton" 
-                                  Background="Transparent" 
-                                  BorderThickness="0"
-                                  IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                                  ClickMode="Press"/>
-
-                            <!-- 선택된 내용 표시 -->
-                            <ContentPresenter x:Name="ContentSite" 
-                                      IsHitTestVisible="False" 
-                                      Content="{TemplateBinding SelectionBoxItem}"
-                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
-                                      ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
-                                      Margin="{TemplateBinding Padding}"
-                                      VerticalAlignment="Center"
-                                      HorizontalAlignment="Left"/>
-
-                            <!-- 화살표 -->
-                            <Path x:Name="Arrow"
-                          Data="M 0 0 L 4 4 L 8 0 Z"
-                          Fill="#666666"
-                          HorizontalAlignment="Right"
-                          VerticalAlignment="Center"
-                          Margin="0,0,12,0"/>
-
-                            <!-- 드롭다운 팝업 -->
-                            <Popup x:Name="Popup" 
-                           Placement="Bottom" 
-                           IsOpen="{TemplateBinding IsDropDownOpen}"
-                           AllowsTransparency="True" 
-                           Focusable="False" 
-                           PopupAnimation="Slide">
-                                <Grid MinWidth="{TemplateBinding ActualWidth}" MaxHeight="200">
-                                    <Border Background="White" 
-                                    BorderBrush="#E1E1E1" 
-                                    BorderThickness="1" 
-                                    CornerRadius="4">
-                                        <Border.Effect>
-                                            <DropShadowEffect Color="#20000000" BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
-                                        </Border.Effect>
-                                        <ScrollViewer>
-                                            <StackPanel IsItemsHost="True"/>
-                                        </ScrollViewer>
-                                    </Border>
-                                </Grid>
-                            </Popup>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsFocused" Value="True">
-                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#007ACC"/>
-                                <Setter TargetName="MainBorder" Property="BorderThickness" Value="2"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="MainBorder" Property="BorderBrush" Value="#007ACC"/>
-                                <Setter TargetName="Arrow" Property="Fill" Value="#007ACC"/>
-                            </Trigger>
-                            <Trigger Property="IsDropDownOpen" Value="True">
-                                <Setter TargetName="Arrow" Property="Data" Value="M 0 4 L 4 0 L 8 4 Z"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
 
         <!-- 카드 스타일 -->
@@ -349,6 +275,93 @@
             <Setter Property="Padding" Value="12,6"/>
             <Setter Property="Background" Value="#FFF4CE"/>
             <Setter Property="Foreground" Value="#9D6C00"/>
+        </Style>
+
+        <!-- 최적화된 탭 컨트롤 스타일 -->
+        <Style TargetType="TabControl">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TabPanel Grid.Row="0" Panel.ZIndex="1" 
+                                      IsItemsHost="True" 
+                                      Margin="0,0,0,0"
+                                      Background="Transparent"/>
+                            <Border Grid.Row="1" 
+                                    Background="White" 
+                                    BorderBrush="#E1E1E1" 
+                                    BorderThickness="1,0,1,1"
+                                    CornerRadius="0,0,4,4"
+                                    Margin="2,0,2,0">
+                                <ContentPresenter ContentSource="SelectedContent" 
+                                                  Margin="0" 
+                                                  x:Name="PART_SelectedContentHost"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 최적화된 탭 아이템 스타일 -->
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="TabBorder" 
+                                Background="#F8F9FA" 
+                                BorderBrush="#E1E1E1" 
+                                BorderThickness="1,1,1,0" 
+                                CornerRadius="4,4,0,0" 
+                                Margin="2,0,2,0" 
+                                Padding="12,6">
+                            <ContentPresenter ContentSource="Header" 
+                                              HorizontalAlignment="Center" 
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="White"/>
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#007ACC"/>
+                                <Setter TargetName="TabBorder" Property="BorderThickness" Value="1,2,1,0"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="TabBorder" Property="Background" Value="#F0F0F0"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+        </Style>
+
+        <!-- 최적화된 리스트박스 스타일 -->
+        <Style TargetType="ListBox">
+            <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True"/>
+            <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling"/>
+            <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel IsVirtualizing="True" VirtualizationMode="Recycling"/>
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 최적화된 데이터그리드 스타일 -->
+        <Style TargetType="DataGrid">
+            <Setter Property="EnableRowVirtualization" Value="True"/>
+            <Setter Property="EnableColumnVirtualization" Value="True"/>
+            <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True"/>
+            <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling"/>
         </Style>
     </Window.Resources>
 
@@ -460,73 +473,13 @@
                 
                 <!-- 콘텐츠 영역 -->
                 <Grid Grid.Row="1">
-                    <!-- 장치 데이터 TabControl -->
+                    <!-- 장치 데이터 TabControl - 최적화된 버전 -->
                     <TabControl x:Name="DeviceTabControl" 
-                                Background="Transparent" BorderThickness="0"
-                                Padding="0" Margin="0" Visibility="Visible">
-                        <TabControl.Resources>
-                            <Style TargetType="TabItem">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="TabItem">
-                                            <Border x:Name="TabBorder" 
-                                                    Background="#F8F9FA" 
-                                                    BorderBrush="#E1E1E1" 
-                                                    BorderThickness="1,1,1,0" 
-                                                    CornerRadius="4,4,0,0" 
-                                                    Margin="2,0,2,0" 
-                                                    Padding="12,6">
-                                                <ContentPresenter ContentSource="Header" 
-                                                                  HorizontalAlignment="Center" 
-                                                                  VerticalAlignment="Center"/>
-                                            </Border>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsSelected" Value="True">
-                                                    <Setter TargetName="TabBorder" Property="Background" Value="White"/>
-                                                    <Setter TargetName="TabBorder" Property="BorderBrush" Value="#007ACC"/>
-                                                    <Setter TargetName="TabBorder" Property="BorderThickness" Value="1,2,1,0"/>
-                                                </Trigger>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="TabBorder" Property="Background" Value="#F0F0F0"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                                <Setter Property="FontWeight" Value="Medium"/>
-                                <Setter Property="FontSize" Value="13"/>
-                                <Setter Property="Margin" Value="0"/>
-                                <Setter Property="Padding" Value="0"/>
-                            </Style>
-                            <Style TargetType="TabControl">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="TabControl">
-                                            <Grid>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto"/>
-                                                    <RowDefinition Height="*"/>
-                                                </Grid.RowDefinitions>
-                                                <TabPanel Grid.Row="0" Panel.ZIndex="1" 
-                                                          IsItemsHost="True" 
-                                                          Margin="0,0,0,0"
-                                                          Background="Transparent"/>
-                                                <Border Grid.Row="1" 
-                                                        Background="White" 
-                                                        BorderBrush="#E1E1E1" 
-                                                        BorderThickness="1,0,1,1"
-                                                        CornerRadius="0,0,4,4"
-                                                        Margin="2,0,2,0">
-                                                    <ContentPresenter ContentSource="SelectedContent" 
-                                                                      Margin="0" 
-                                                                      x:Name="PART_SelectedContentHost"/>
-                                                </Border>
-                                            </Grid>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </TabControl.Resources>
+                                Background="Transparent" 
+                                BorderThickness="0"
+                                Padding="0" 
+                                Margin="0" 
+                                Visibility="Visible">
                     </TabControl>
                     
                     <!-- 로그 ListBox -->
@@ -537,7 +490,10 @@
                                  BorderThickness="0" 
                                  Padding="12"
                                  FontFamily="Consolas, Monaco, monospace"
-                                 FontSize="12">
+                                 FontSize="12"
+                                 VirtualizingStackPanel.IsVirtualizing="True"
+                                 VirtualizingStackPanel.VirtualizationMode="Recycling"
+                                 ScrollViewer.CanContentScroll="True">
                             <ListBox.ItemContainerStyle>
                                 <Style TargetType="ListBoxItem">
                                     <Setter Property="Padding" Value="4,2"/>
