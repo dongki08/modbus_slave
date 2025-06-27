@@ -18,6 +18,7 @@ using System.Text;
 using Modbus.Data;
 using System.Collections.Concurrent;
 using System.Windows.Threading;
+using System.Windows.Input;
 
 namespace modbus
 {
@@ -29,7 +30,7 @@ namespace modbus
         private Dictionary<byte, ModbusSlaveDevice> slaveDevices = new Dictionary<byte, ModbusSlaveDevice>();
         private bool isServerRunning = false;
         private CancellationTokenSource cancellationTokenSource;
-        
+
         // UI 업데이트 최적화를 위한 타이머
         private DispatcherTimer uiUpdateTimer;
         private readonly object uiUpdateLock = new object();
@@ -42,13 +43,52 @@ namespace modbus
 
             StartAddressTextBox.ToolTip = "시작 주소 오프셋 (0부터 시작)\n" +
                                           "예: 0 입력 시 30001부터, 10 입력 시 30011부터";
-            
+
             // UI 업데이트 타이머 초기화 (60fps)
             uiUpdateTimer = new DispatcherTimer();
             uiUpdateTimer.Interval = TimeSpan.FromMilliseconds(16);
             uiUpdateTimer.Tick += UiUpdateTimer_Tick;
             uiUpdateTimer.Start();
         }
+
+        #region 커스텀 타이틀바 이벤트 핸들러
+
+        private void TitleBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+            {
+                Maximize_Click(null, null);
+            }
+            else
+            {
+                this.DragMove();
+            }
+        }
+
+        private void Minimize_Click(object sender, RoutedEventArgs e)
+        {
+            this.WindowState = WindowState.Minimized;
+        }
+
+        private void Maximize_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.WindowState == WindowState.Maximized)
+            {
+                this.WindowState = WindowState.Normal;
+            }
+            else
+            {
+                this.WindowState = WindowState.Maximized;
+            }
+        }
+
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            this.Close();
+        }
+
+        #endregion
+
         private void OnRegisterValueUpdated(object sender, RoutedEventArgs e)
         {
             UpdateCurrentDeviceDataStore();
@@ -75,7 +115,7 @@ namespace modbus
             {
                 if (isServerRunning)
                 {
-                    MessageBox.Show("서버가 이미 실행 중입니다.");
+                    ShowModernMessageBox("서버가 이미 실행 중입니다.", "정보", MessageBoxImage.Information);
                     return;
                 }
 
@@ -115,43 +155,55 @@ namespace modbus
 
                 _ = Task.Run(() => RunModbusServer(cancellationTokenSource.Token));
 
-                ServerStatusText.Text = "서버 실행중";
-                ServerStatusText.Foreground = System.Windows.Media.Brushes.Green;
+                // 서버 상태 업데이트 (성공 스타일)
+                ServerStatusText.Text = "🟢 서버 실행중";
+                var successBrush = FindResource("SuccessBrush") as SolidColorBrush;
+                if (ServerStatusText.Parent is Border statusBorder)
+                {
+                    statusBorder.Background = new LinearGradientBrush(
+                        new GradientStopCollection
+                        {
+                            new GradientStop(Color.FromRgb(0x16, 0xA0, 0x85), 0),
+                            new GradientStop(Color.FromRgb(0x13, 0x8D, 0x75), 1)
+                        },
+                        new Point(0, 0), new Point(0, 1)
+                    );
+                }
 
-                Log($"서버 시작됨 - {ipAddress}:{port}");
-                MessageBox.Show("서버가 시작되었습니다.");
+                Log($"🚀 서버 시작됨 - {ipAddress}:{port}");
+                ShowModernMessageBox("서버가 성공적으로 시작되었습니다!", "성공", MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"서버 시작 실패: {ex.Message}");
+                ShowModernMessageBox($"서버 시작 실패: {ex.Message}", "오류", MessageBoxImage.Error);
             }
         }
-        
+
         private void ShowDeviceData_Click(object sender, RoutedEventArgs e)
         {
             DeviceDataButton.Style = (Style)FindResource("ActiveToggleButton");
-            LogButton.Style = (Style)FindResource("ToggleButton");
-    
+            LogButton.Style = (Style)FindResource("ToggleButton2");
+
             HeaderIcon.Icon = FontAwesome.Sharp.IconChar.Database;
             HeaderText.Text = "장치 데이터";
-    
+
             DeviceTabControl.Visibility = Visibility.Visible;
             LogContainer.Visibility = Visibility.Collapsed;
-    
+
             DeleteDeviceButton.Visibility = Visibility.Visible;
         }
 
         private void ShowLog_Click(object sender, RoutedEventArgs e)
         {
-            DeviceDataButton.Style = (Style)FindResource("ToggleButton");
+            DeviceDataButton.Style = (Style)FindResource("ToggleButton2");
             LogButton.Style = (Style)FindResource("ActiveToggleButton");
-    
+
             HeaderIcon.Icon = FontAwesome.Sharp.IconChar.FileLines;
-            HeaderText.Text = "로그";
-    
+            HeaderText.Text = "시스템 로그";
+
             DeviceTabControl.Visibility = Visibility.Collapsed;
             LogContainer.Visibility = Visibility.Visible;
-    
+
             DeleteDeviceButton.Visibility = Visibility.Collapsed;
         }
 
@@ -168,15 +220,27 @@ namespace modbus
                 tcpListener?.Stop();
                 tcpListener = null;
 
-                ServerStatusText.Text = "서버 중지됨";
-                ServerStatusText.Foreground = System.Windows.Media.Brushes.Red;
+                // 서버 상태 업데이트 (중지 스타일)
+                ServerStatusText.Text = "🔴 서버 중지됨";
+                var warningBrush = FindResource("WarningBrush") as SolidColorBrush;
+                if (ServerStatusText.Parent is Border statusBorder)
+                {
+                    statusBorder.Background = new LinearGradientBrush(
+                        new GradientStopCollection
+                        {
+                            new GradientStop(Color.FromRgb(0xF3, 0x9C, 0x12), 0),
+                            new GradientStop(Color.FromRgb(0xE6, 0x7E, 0x22), 1)
+                        },
+                        new Point(0, 0), new Point(0, 1)
+                    );
+                }
 
-                Log("서버 중지됨");
-                MessageBox.Show("서버가 중지되었습니다.");
+                Log("⏹ 서버 중지됨");
+                ShowModernMessageBox("서버가 중지되었습니다.", "정보", MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"서버 중지 실패: {ex.Message}");
+                ShowModernMessageBox($"서버 중지 실패: {ex.Message}", "오류", MessageBoxImage.Error);
             }
         }
 
@@ -197,8 +261,9 @@ namespace modbus
                         {
                             if (!cancellationToken.IsCancellationRequested)
                             {
-                                Dispatcher.BeginInvoke(new Action(() => Log($"서버 실행 오류: {ex.Message}")));
+                                Dispatcher.BeginInvoke(new Action(() => Log($"❌ 서버 실행 오류: {ex.Message}")));
                             }
+
                             Thread.Sleep(100);
                         }
                     }
@@ -206,7 +271,7 @@ namespace modbus
             }
             catch (OperationCanceledException)
             {
-                Dispatcher.BeginInvoke(new Action(() => Log("서버 종료됨")));
+                Dispatcher.BeginInvoke(new Action(() => Log("🔄 서버 종료됨")));
             }
         }
 
@@ -218,32 +283,32 @@ namespace modbus
 
             if (!byte.TryParse(UnitIdTextBox.Text, out unitId))
             {
-                MessageBox.Show("장치 ID를 0-255 사이의 값으로 입력하세요.");
+                ShowModernMessageBox("장치 ID를 0-255 사이의 값으로 입력하세요.", "입력 오류", MessageBoxImage.Warning);
                 return;
             }
 
             if (slaveDevices.ContainsKey(unitId))
             {
-                MessageBox.Show("이미 존재하는 장치입니다.");
+                ShowModernMessageBox("이미 존재하는 장치입니다.", "중복 오류", MessageBoxImage.Warning);
                 return;
             }
 
             if (!int.TryParse(StartAddressTextBox.Text, out startAddress) || startAddress < 0)
             {
-                MessageBox.Show("올바른 시작 주소를 입력하세요. (0부터 시작)");
+                ShowModernMessageBox("올바른 시작 주소를 입력하세요. (0부터 시작)", "입력 오류", MessageBoxImage.Warning);
                 return;
             }
 
             if (!int.TryParse(AddressCountTextBox.Text, out count) || count <= 0)
             {
-                MessageBox.Show("올바른 주소 수를 입력하세요.");
+                ShowModernMessageBox("올바른 주소 수를 입력하세요.", "입력 오류", MessageBoxImage.Warning);
                 return;
             }
 
             ComboBoxItem selectedItem = RegisterTypeComboBox.SelectedItem as ComboBoxItem;
             if (selectedItem == null)
             {
-                MessageBox.Show("레지스터 유형을 선택하세요.");
+                ShowModernMessageBox("레지스터 유형을 선택하세요.", "선택 오류", MessageBoxImage.Warning);
                 return;
             }
 
@@ -276,7 +341,7 @@ namespace modbus
             DeviceTabControl.Items.Add(tab);
             DeviceTabControl.SelectedItem = tab;
 
-            Log($"장치 {unitId} 추가됨 (유형: {selectedItem.Content}, 시작주소: {startAddress}, 개수: {count})");
+            Log($"➕ 장치 {unitId} 추가됨 (유형: {selectedItem.Content}, 시작주소: {startAddress}, 개수: {count})");
         }
 
         private void DeleteDevice_Click(object sender, RoutedEventArgs e)
@@ -285,21 +350,27 @@ namespace modbus
             if (selectedTab != null && selectedTab.Tag is byte)
             {
                 byte unitId = (byte)selectedTab.Tag;
-                DeviceTabControl.Items.Remove(selectedTab);
-                slaveDevices.Remove(unitId);
-                customDataStore.RemoveDevice(unitId);
-                Log($"장치 {unitId} 삭제됨");
+
+                var result = ShowModernMessageBox($"장치 {unitId}를 삭제하시겠습니까?", "삭제 확인", MessageBoxImage.Question);
+                if (result == MessageBoxResult.Yes)
+                {
+                    DeviceTabControl.Items.Remove(selectedTab);
+                    slaveDevices.Remove(unitId);
+                    customDataStore.RemoveDevice(unitId);
+                    Log($"🗑️ 장치 {unitId} 삭제됨");
+                }
             }
             else
             {
-                MessageBox.Show("삭제할 장치를 선택하세요.");
+                ShowModernMessageBox("삭제할 장치를 선택하세요.", "선택 오류", MessageBoxImage.Warning);
             }
         }
 
         private UIElement CreateDeviceTab(ModbusSlaveDevice device)
         {
             Grid mainGrid = new Grid();
-            mainGrid.Margin = new Thickness(4);
+            mainGrid.Margin = new Thickness(0);
+            mainGrid.Background = Brushes.Transparent;
 
             int rowCount = 0;
             if (device.Coils != null) rowCount++;
@@ -329,7 +400,9 @@ namespace modbus
 
             if (device.DualRegisters != null)
             {
-                string title = device.RegisterType == 40001 ? "🟠 Holding Register [40001+]" : "🟡 Input Register [30001+]";
+                string title = device.RegisterType == 40001
+                    ? "🟠 Holding Register [40001+]"
+                    : "🟡 Input Register [30001+]";
                 var card = CreateOptimizedRegisterCard(title, device.DualRegisters, true);
                 Grid.SetRow(card, currentRow++);
                 mainGrid.Children.Add(card);
@@ -338,143 +411,144 @@ namespace modbus
             return mainGrid;
         }
 
-        // *** 최적화된 레지스터 카드 생성 - 가상화 지원 ***
-        private UIElement CreateOptimizedRegisterCard(string title, ObservableCollection<DualRegisterModel> data, bool fillHeight = false)
+        // *** 최적화된 레지스터 카드 생성 - 모던 디자인 ***
+        private UIElement CreateOptimizedRegisterCard(string title, ObservableCollection<DualRegisterModel> data,
+    bool fillHeight = false)
+{
+    Grid cardContent = new Grid { Margin = new Thickness(0) }; // Border 제거하고 Grid로 직접 시작
+    cardContent.Background = Brushes.Transparent;
+    cardContent.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 헤더
+    cardContent.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 콘텐츠
+
+    // 헤더
+    TextBlock header = new TextBlock
+    {
+        Text = title,
+        FontSize = 16,
+        FontWeight = FontWeights.Bold,
+        Foreground = FindResource("TextBrush") as SolidColorBrush,
+        Margin = new Thickness(0, 0, 0, 10),
+        Effect = new DropShadowEffect
         {
-            Border cardBorder = new Border
-            {
-                Background = Brushes.White,
-                BorderBrush = new SolidColorBrush(Color.FromRgb(225, 225, 225)),
-                BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(6),
-                Margin = new Thickness(0, 0, 0, 4),
-                HorizontalAlignment = HorizontalAlignment.Stretch,
-                VerticalAlignment = VerticalAlignment.Stretch,
-                Effect = new DropShadowEffect
-                {
-                    Color = Color.FromArgb(0x15, 0x00, 0x00, 0x00),
-                    BlurRadius = 6,
-                    ShadowDepth = 1,
-                    Opacity = 0.2
-                }
-            };
-
-            Grid cardContent = new Grid { Margin = new Thickness(12, 8, 12, 8) };
-            cardContent.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 헤더
-            cardContent.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // 콘텐츠
-
-            TextBlock header = new TextBlock
-            {
-                Text = title,
-                FontSize = 14,
-                FontWeight = FontWeights.SemiBold,
-                Foreground = new SolidColorBrush(Color.FromRgb(44, 44, 44)),
-                Margin = new Thickness(0, 0, 0, 8)
-            };
-            Grid.SetRow(header, 0);
-            cardContent.Children.Add(header);
-
-            // *** 가상화된 리스트박스 사용 ***
-            ListBox virtualizedListBox = new ListBox();
-            virtualizedListBox.ItemsSource = data;
-            // 스크롤바 설정 수정
-            ScrollViewer.SetVerticalScrollBarVisibility(virtualizedListBox, ScrollBarVisibility.Auto);
-            ScrollViewer.SetHorizontalScrollBarVisibility(virtualizedListBox, ScrollBarVisibility.Disabled);
-   
-            // 가상화 설정
-            VirtualizingStackPanel.SetIsVirtualizing(virtualizedListBox, true);
-            VirtualizingStackPanel.SetVirtualizationMode(virtualizedListBox, VirtualizationMode.Recycling);
-            ScrollViewer.SetCanContentScroll(virtualizedListBox, true);
-            
-            // 가상화 설정
-            VirtualizingStackPanel.SetIsVirtualizing(virtualizedListBox, true);
-            VirtualizingStackPanel.SetVirtualizationMode(virtualizedListBox, VirtualizationMode.Recycling);
-            ScrollViewer.SetCanContentScroll(virtualizedListBox, true);
-
-            // 항목 템플릿 설정
-            virtualizedListBox.ItemTemplate = CreateOptimizedDataTemplate();
-            
-            // 항목 컨테이너 스타일
-            virtualizedListBox.ItemContainerStyle = new Style(typeof(ListBoxItem));
-            virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.PaddingProperty, new Thickness(0)));
-            virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.MarginProperty, new Thickness(0)));
-            virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.BorderThicknessProperty, new Thickness(0)));
-            virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.BackgroundProperty, Brushes.Transparent));
-            
-            // 선택 비활성화
-            virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.FocusableProperty, false));
-            var noSelectionTemplate = new ControlTemplate(typeof(ListBoxItem));
-            var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
-            noSelectionTemplate.VisualTree = contentPresenter;
-            virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.TemplateProperty, noSelectionTemplate));
-
-            Grid.SetRow(virtualizedListBox, 1);
-            cardContent.Children.Add(virtualizedListBox);
-            cardBorder.Child = cardContent;
-
-            return cardBorder;
+            Color = Color.FromRgb(0x00, 0x78, 0xD4),
+            BlurRadius = 8,
+            ShadowDepth = 0,
+            Opacity = 0.4
         }
+    };
+    Grid.SetRow(header, 0);
+    cardContent.Children.Add(header);
 
-        // *** 최적화된 데이터 템플릿 생성 ***
-        // CreateOptimizedDataTemplate 메서드 수정:
+    // 리스트박스
+    ListBox virtualizedListBox = new ListBox();
+    virtualizedListBox.ItemsSource = data;
+    virtualizedListBox.Background = Brushes.Transparent;
+    virtualizedListBox.BorderThickness = new Thickness(0);
+    virtualizedListBox.Margin = new Thickness(0);
+    virtualizedListBox.Padding = new Thickness(0);
 
+    ScrollViewer.SetVerticalScrollBarVisibility(virtualizedListBox, ScrollBarVisibility.Auto);
+    ScrollViewer.SetHorizontalScrollBarVisibility(virtualizedListBox, ScrollBarVisibility.Disabled);
+
+    VirtualizingStackPanel.SetIsVirtualizing(virtualizedListBox, true);
+    VirtualizingStackPanel.SetVirtualizationMode(virtualizedListBox, VirtualizationMode.Recycling);
+    ScrollViewer.SetCanContentScroll(virtualizedListBox, true);
+
+    virtualizedListBox.ItemTemplate = CreateOptimizedDataTemplate();
+
+    // 항목 컨테이너 스타일 - 완전 투명
+    virtualizedListBox.ItemContainerStyle = new Style(typeof(ListBoxItem));
+    virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.PaddingProperty, new Thickness(0)));
+    virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.MarginProperty, new Thickness(0)));
+    virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.BorderThicknessProperty, new Thickness(0)));
+    virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.BackgroundProperty, Brushes.Transparent));
+    virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.FocusableProperty, false));
+    
+    var noSelectionTemplate = new ControlTemplate(typeof(ListBoxItem));
+    var contentPresenter = new FrameworkElementFactory(typeof(ContentPresenter));
+    noSelectionTemplate.VisualTree = contentPresenter;
+    virtualizedListBox.ItemContainerStyle.Setters.Add(new Setter(ListBoxItem.TemplateProperty, noSelectionTemplate));
+
+    Grid.SetRow(virtualizedListBox, 1);
+    cardContent.Children.Add(virtualizedListBox);
+
+    return cardContent; // Border 대신 Grid 직접 반환
+}
+
+        // *** 최적화된 데이터 템플릿 생성 - 모던 스타일 ***
         private DataTemplate CreateOptimizedDataTemplate()
         {
             DataTemplate template = new DataTemplate();
-    
+
             FrameworkElementFactory borderFactory = new FrameworkElementFactory(typeof(Border));
-            borderFactory.SetValue(Border.BackgroundProperty, new SolidColorBrush(Color.FromRgb(250, 251, 252)));
-            borderFactory.SetValue(Border.BorderBrushProperty, new SolidColorBrush(Color.FromRgb(230, 230, 230)));
+
+            // 그라데이션 배경 설정
+            var gradientBrush = new LinearGradientBrush();
+            gradientBrush.StartPoint = new Point(0, 0);
+            gradientBrush.EndPoint = new Point(0, 1);
+            gradientBrush.GradientStops.Add(new GradientStop(Color.FromRgb(0x3F, 0x3F, 0x46), 0));
+            gradientBrush.GradientStops.Add(new GradientStop(Color.FromRgb(0x32, 0x32, 0x37), 1));
+
+            borderFactory.SetValue(Border.BackgroundProperty, gradientBrush);
+            borderFactory.SetValue(Border.BorderBrushProperty, FindResource("BorderBrush"));
             borderFactory.SetValue(Border.BorderThicknessProperty, new Thickness(1));
-            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
-            borderFactory.SetValue(Border.MarginProperty, new Thickness(0, 2, 0, 2));
-            borderFactory.SetValue(Border.PaddingProperty, new Thickness(12));
+            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
+            borderFactory.SetValue(Border.MarginProperty, new Thickness(0, 0, 0,0));
+            borderFactory.SetValue(Border.PaddingProperty, new Thickness(7));
+            borderFactory.SetValue(Border.EffectProperty, FindResource("SoftShadow"));
 
-            FrameworkElementFactory stackFactory = new FrameworkElementFactory(typeof(StackPanel));
-            stackFactory.SetValue(StackPanel.OrientationProperty, Orientation.Vertical);
+            FrameworkElementFactory controlFactory = new FrameworkElementFactory(typeof(ModernRegisterControl));
+            controlFactory.SetBinding(ModernRegisterControl.RegisterModelProperty, new Binding("."));
+            controlFactory.AddHandler(ModernRegisterControl.RegisterValueUpdatedEvent,
+                new RoutedEventHandler(OnRegisterValueUpdated));
 
-
-            FrameworkElementFactory controlFactory = new FrameworkElementFactory(typeof(OptimizedRegisterControl));
-            controlFactory.SetBinding(OptimizedRegisterControl.RegisterModelProperty, new Binding("."));
-            controlFactory.AddHandler(OptimizedRegisterControl.RegisterValueUpdatedEvent, new RoutedEventHandler(OnRegisterValueUpdated));
-
-            stackFactory.AppendChild(controlFactory);
-            borderFactory.AppendChild(stackFactory);
+            borderFactory.AppendChild(controlFactory);
             template.VisualTree = borderFactory;
 
             return template;
         }
 
-        // Coil용 카드 생성 (기존 방식 - 가상화 추가)
-        private UIElement CreateCoilCard(string title, ObservableCollection<RegisterModel> data, bool fillHeight = false)
+        // Coil용 카드 생성 (모던 스타일)
+        private UIElement CreateCoilCard(string title, ObservableCollection<RegisterModel> data,
+            bool fillHeight = false)
         {
             Border cardBorder = new Border();
-            cardBorder.Background = Brushes.White;
-            cardBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(225, 225, 225));
+            cardBorder.Background = new LinearGradientBrush(
+                new GradientStopCollection
+                {
+                    new GradientStop(Color.FromRgb(0x2D, 0x2D, 0x30), 0),
+                    new GradientStop(Color.FromRgb(0x25, 0x25, 0x26), 1)
+                },
+                new Point(0, 0), new Point(0, 1)
+            );
+            cardBorder.BorderBrush = FindResource("BorderBrush") as SolidColorBrush;
             cardBorder.BorderThickness = new Thickness(1);
-            cardBorder.CornerRadius = new CornerRadius(6);
-            cardBorder.Margin = new Thickness(0, 0, 0, 4);
+            cardBorder.CornerRadius = new CornerRadius(10);
+            cardBorder.Margin = new Thickness(0);
             cardBorder.HorizontalAlignment = HorizontalAlignment.Stretch;
             cardBorder.VerticalAlignment = VerticalAlignment.Stretch;
-            cardBorder.Effect = new DropShadowEffect
-            {
-                Color = Color.FromArgb(0x15, 0x00, 0x00, 0x00),
-                BlurRadius = 6,
-                ShadowDepth = 1,
-                Opacity = 0.2
-            };
+            cardBorder.Effect = FindResource("CardShadow") as DropShadowEffect;
 
             Grid cardContent = new Grid();
-            cardContent.Margin = new Thickness(12, 8, 12, 8);
+            cardContent.Margin = new Thickness(0);
             cardContent.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             cardContent.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
-            TextBlock header = new TextBlock();
-            header.Text = title;
-            header.FontSize = 14;
-            header.FontWeight = FontWeights.SemiBold;
-            header.Foreground = new SolidColorBrush(Color.FromRgb(44, 44, 44));
-            header.Margin = new Thickness(0, 0, 0, 8);
+            TextBlock header = new TextBlock
+            {
+                Text = title,
+                FontSize = 16,
+                FontWeight = FontWeights.Bold,
+                Foreground = FindResource("TextBrush") as SolidColorBrush,
+                Margin = new Thickness(0, 0, 0, 5), // 15에서 5로 줄임
+                Effect = new DropShadowEffect
+                {
+                    Color = Color.FromRgb(0x00, 0x78, 0xD4),
+                    BlurRadius = 8,
+                    ShadowDepth = 0,
+                    Opacity = 0.4
+                }
+            };
             Grid.SetRow(header, 0);
             cardContent.Children.Add(header);
 
@@ -489,10 +563,11 @@ namespace modbus
             grid.Background = Brushes.Transparent;
             grid.BorderThickness = new Thickness(0);
             grid.GridLinesVisibility = DataGridGridLinesVisibility.Horizontal;
-            grid.HorizontalGridLinesBrush = new SolidColorBrush(Color.FromRgb(245, 245, 245));
+            grid.HorizontalGridLinesBrush = FindResource("BorderBrush") as SolidColorBrush;
             grid.HeadersVisibility = DataGridHeadersVisibility.Column;
-            grid.RowHeight = 28;
-            grid.FontSize = 12;
+            grid.RowHeight = 32;
+            grid.FontSize = 13;
+            grid.Foreground = FindResource("TextBrush") as SolidColorBrush;
             grid.HorizontalAlignment = HorizontalAlignment.Stretch;
             grid.VerticalAlignment = VerticalAlignment.Stretch;
             grid.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
@@ -507,21 +582,21 @@ namespace modbus
 
             grid.ColumnHeaderStyle = new Style(typeof(DataGridColumnHeader));
             grid.ColumnHeaderStyle.Setters.Add(new Setter(DataGridColumnHeader.BackgroundProperty,
-                new SolidColorBrush(Color.FromRgb(248, 249, 250))));
+                FindResource("SurfaceBrush")));
             grid.ColumnHeaderStyle.Setters.Add(new Setter(DataGridColumnHeader.ForegroundProperty,
-                new SolidColorBrush(Color.FromRgb(92, 92, 92))));
+                FindResource("TextBrush")));
             grid.ColumnHeaderStyle.Setters.Add(new Setter(DataGridColumnHeader.FontWeightProperty,
-                FontWeights.Medium));
-            grid.ColumnHeaderStyle.Setters.Add(new Setter(DataGridColumnHeader.FontSizeProperty, 12.0));
-            grid.ColumnHeaderStyle.Setters.Add(new Setter(DataGridColumnHeader.HeightProperty, 30.0));
+                FontWeights.Bold));
+            grid.ColumnHeaderStyle.Setters.Add(new Setter(DataGridColumnHeader.FontSizeProperty, 13.0));
+            grid.ColumnHeaderStyle.Setters.Add(new Setter(DataGridColumnHeader.HeightProperty, 35.0));
 
             grid.Columns.Add(new DataGridTextColumn
             {
                 Header = "Address",
                 Binding = new Binding("DisplayAddress"),
                 IsReadOnly = true,
-                Width = new DataGridLength(0.3, DataGridLengthUnitType.Star),
-                MinWidth = 80
+                Width = new DataGridLength(0.4, DataGridLengthUnitType.Star),
+                MinWidth = 100
             });
 
             grid.Columns.Add(new DataGridTextColumn
@@ -529,7 +604,7 @@ namespace modbus
                 Header = "Value",
                 Binding = new Binding("Value"),
                 IsReadOnly = false,
-                Width = new DataGridLength(0.35, DataGridLengthUnitType.Star),
+                Width = new DataGridLength(0.6, DataGridLengthUnitType.Star),
                 MinWidth = 80
             });
 
@@ -542,7 +617,7 @@ namespace modbus
                     {
                         Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            Log($"레지스터 {register.DisplayAddress} 값이 {register.Value}로 변경됨");
+                            Log($"📝 레지스터 {register.DisplayAddress} 값이 {register.Value}로 변경됨");
                             UpdateCurrentDeviceDataStore();
                         }), DispatcherPriority.Background);
                     }
@@ -553,7 +628,7 @@ namespace modbus
             cardBorder.Child = cardContent;
             return cardBorder;
         }
-
+        
         private void UpdateCurrentDeviceDataStore()
         {
             if (customDataStore.IsUpdatingFromMaster)
@@ -595,11 +670,16 @@ namespace modbus
         {
             Dispatcher.BeginInvoke(new Action(() =>
             {
-                LogBox.Items.Add($"{DateTime.Now:HH:mm:ss} - {message}");
+                LogBox.Items.Add($"⏰ {DateTime.Now:HH:mm:ss} - {message}");
                 if (LogBox.Items.Count > 100)
                     LogBox.Items.RemoveAt(0);
                 LogBox.ScrollIntoView(LogBox.Items[LogBox.Items.Count - 1]);
             }), DispatcherPriority.Background);
+        }
+
+        private MessageBoxResult ShowModernMessageBox(string message, string title, MessageBoxImage icon)
+        {
+            return MessageBox.Show(message, title, MessageBoxButton.YesNo, icon);
         }
 
         protected override void OnClosing(CancelEventArgs e)
@@ -609,15 +689,16 @@ namespace modbus
             {
                 StopServer_Click(null, null);
             }
+
             base.OnClosing(e);
         }
     }
 
-    // *** 최적화된 레지스터 컨트롤 (UserControl 기반) ***
-    public class OptimizedRegisterControl : UserControl
+    // *** 모던 레지스터 컨트롤 (UserControl 기반) ***
+    public class ModernRegisterControl : UserControl
     {
         public static readonly DependencyProperty RegisterModelProperty =
-            DependencyProperty.Register("RegisterModel", typeof(DualRegisterModel), typeof(OptimizedRegisterControl),
+            DependencyProperty.Register("RegisterModel", typeof(DualRegisterModel), typeof(ModernRegisterControl),
                 new PropertyMetadata(null, OnRegisterModelChanged));
 
         public DualRegisterModel RegisterModel
@@ -634,15 +715,13 @@ namespace modbus
         private TextBlock headerLabel;
         private bool isInternalUpdate = false;
 
-        private static readonly Dictionary<int, OptimizedRegisterControl> activeControls = 
-            new Dictionary<int, OptimizedRegisterControl>();
+        private static readonly Dictionary<int, ModernRegisterControl> activeControls =
+            new Dictionary<int, ModernRegisterControl>();
 
-        public OptimizedRegisterControl()
+        public ModernRegisterControl()
         {
             CreateUI();
         }
-
-        // CreateUI 메서드 수정:
 
         private void CreateUI()
         {
@@ -650,32 +729,40 @@ namespace modbus
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             mainGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // 헤더
+            // 헤더 (모던 스타일)
             headerLabel = new TextBlock();
-            headerLabel.FontWeight = FontWeights.SemiBold;
-            headerLabel.FontSize = 13;
-            headerLabel.Margin = new Thickness(0, 0, 0, 0);
+            headerLabel.FontWeight = FontWeights.Bold;
+            headerLabel.FontSize = 14;
+            headerLabel.Foreground = new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4));
+            headerLabel.Margin = new Thickness(0, 0, 0, 12);
+            headerLabel.Effect = new DropShadowEffect
+            {
+                Color = Color.FromRgb(0x00, 0x78, 0xD4),
+                BlurRadius = 5,
+                ShadowDepth = 0,
+                Opacity = 0.6
+            };
             Grid.SetRow(headerLabel, 0);
             mainGrid.Children.Add(headerLabel);
 
             // 입력 컨트롤 행
             StackPanel inputRow = new StackPanel();
             inputRow.Orientation = Orientation.Horizontal;
-            inputRow.VerticalAlignment = VerticalAlignment.Top; // 상단 정렬
+            inputRow.VerticalAlignment = VerticalAlignment.Top;
             Grid.SetRow(inputRow, 1);
 
             // 10진수 입력
             CreateDecimalInput(inputRow);
-   
+
             // 16진수 입력
             CreateHexInput(inputRow);
-   
+
             // 문자열 입력
             CreateStringInput(inputRow);
-   
+
             // 2진수 표시
             CreateBinaryDisplay(inputRow);
-   
+
             // 비트 편집
             CreateBitEditor(inputRow);
 
@@ -687,20 +774,20 @@ namespace modbus
         {
             StackPanel panel = new StackPanel();
             panel.Orientation = Orientation.Horizontal;
-            panel.Margin = new Thickness(0, 0, 10, 0);
+            panel.Margin = new Thickness(0, 0, 15, 0);
 
             TextBlock label = new TextBlock();
-            label.Text = "10진수: ";
+            label.Text = "10진수";
+            label.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
             label.VerticalAlignment = VerticalAlignment.Center;
-            label.Margin = new Thickness(0, 0, 5, 0);
+            label.Margin = new Thickness(0, 0, 8, 0);
+            label.FontSize = 12;
+            label.FontWeight = FontWeights.Medium;
 
-            decimalTextBox = new TextBox();
-            decimalTextBox.Width = 50;
-            decimalTextBox.Height = 26;
-            decimalTextBox.VerticalContentAlignment = VerticalAlignment.Center; 
-            
+            decimalTextBox = CreateModernTextBox(60);
+
             decimalTextBox.LostFocus += (s, e) => ProcessDecimalInput();
-            decimalTextBox.KeyDown += (s, e) => 
+            decimalTextBox.KeyDown += (s, e) =>
             {
                 if (e.Key == System.Windows.Input.Key.Enter)
                 {
@@ -718,20 +805,20 @@ namespace modbus
         {
             StackPanel panel = new StackPanel();
             panel.Orientation = Orientation.Horizontal;
-            panel.Margin = new Thickness(0, 0, 10, 0);
+            panel.Margin = new Thickness(0, 0, 15, 0);
 
             TextBlock label = new TextBlock();
-            label.Text = "16진수: ";
+            label.Text = "16진수";
+            label.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
             label.VerticalAlignment = VerticalAlignment.Center;
-            label.Margin = new Thickness(0, 0, 5, 0);
+            label.Margin = new Thickness(0, 0, 8, 0);
+            label.FontSize = 12;
+            label.FontWeight = FontWeights.Medium;
 
-            hexTextBox = new TextBox();
-            hexTextBox.Width = 50;
-            hexTextBox.Height = 26;
-            hexTextBox.VerticalContentAlignment = VerticalAlignment.Center; 
-            
+            hexTextBox = CreateModernTextBox(70);
+
             hexTextBox.LostFocus += (s, e) => ProcessHexInput();
-            hexTextBox.KeyDown += (s, e) => 
+            hexTextBox.KeyDown += (s, e) =>
             {
                 if (e.Key == System.Windows.Input.Key.Enter)
                 {
@@ -749,21 +836,21 @@ namespace modbus
         {
             StackPanel panel = new StackPanel();
             panel.Orientation = Orientation.Horizontal;
-            panel.Margin = new Thickness(0, 0, 20, 0);
+            panel.Margin = new Thickness(0, 0, 15, 0);
 
             TextBlock label = new TextBlock();
-            label.Text = "문자열: ";
+            label.Text = "문자열";
+            label.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
             label.VerticalAlignment = VerticalAlignment.Center;
-            label.Margin = new Thickness(0, 0, 5, 0);
+            label.Margin = new Thickness(0, 0, 8, 0);
+            label.FontSize = 12;
+            label.FontWeight = FontWeights.Medium;
 
-            stringTextBox = new TextBox();
-            stringTextBox.Width = 35;
-            stringTextBox.Height = 26;
+            stringTextBox = CreateModernTextBox(45);
             stringTextBox.MaxLength = 2;
-            stringTextBox.VerticalContentAlignment = VerticalAlignment.Center; 
-            
+
             stringTextBox.LostFocus += (s, e) => ProcessStringInput();
-            stringTextBox.KeyDown += (s, e) => 
+            stringTextBox.KeyDown += (s, e) =>
             {
                 if (e.Key == System.Windows.Input.Key.Enter)
                 {
@@ -781,104 +868,195 @@ namespace modbus
         {
             StackPanel panel = new StackPanel();
             panel.Orientation = Orientation.Horizontal;
-            panel.Margin = new Thickness(0, 0, 20, 0);
+            panel.Margin = new Thickness(0, 0, 15, 0);
 
             TextBlock label = new TextBlock();
-            label.Text = "2진수: ";
+            label.Text = "2진수";
+            label.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
             label.VerticalAlignment = VerticalAlignment.Center;
-            label.Margin = new Thickness(0, 0, 5, 0);
+            label.Margin = new Thickness(0, 0, 8, 0);
+            label.FontSize = 12;
+            label.FontWeight = FontWeights.Medium;
 
-            binaryTextBox = new TextBox();
+            binaryTextBox = CreateModernTextBox(140);
             binaryTextBox.IsReadOnly = true;
-            binaryTextBox.Background = new SolidColorBrush(Color.FromRgb(248, 249, 250));
-            binaryTextBox.FontFamily = new FontFamily("Consolas");
-            binaryTextBox.FontSize = 13;
-            binaryTextBox.Width = 130;
-            binaryTextBox.Height = 26;
-            binaryTextBox.VerticalContentAlignment = VerticalAlignment.Center; 
+            binaryTextBox.Background = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x1E));
+            binaryTextBox.FontFamily = new FontFamily("Consolas, Monaco, monospace");
+            binaryTextBox.FontSize = 11;
+            binaryTextBox.Foreground = new SolidColorBrush(Color.FromRgb(0x9C, 0xDC, 0xFE));
 
             panel.Children.Add(label);
             panel.Children.Add(binaryTextBox);
             parent.Children.Add(panel);
         }
 
-        // CreateBitEditor 메서드 수정:
+        private TextBox CreateModernTextBox(double width)
+        {
+            TextBox textBox = new TextBox();
+            textBox.Width = width;
+            textBox.Height = 28;
+            textBox.Background = new SolidColorBrush(Color.FromRgb(0x2D, 0x2D, 0x30));
+            textBox.Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
+            textBox.BorderBrush = new SolidColorBrush(Color.FromRgb(0x3F, 0x3F, 0x46));
+            textBox.BorderThickness = new Thickness(1);
+            textBox.Padding = new Thickness(8, 4, 0,0);
+            textBox.FontSize = 12;
+            textBox.VerticalContentAlignment = VerticalAlignment.Center;
 
-private void CreateBitEditor(StackPanel parent)
-{
-   StackPanel bitSection = new StackPanel();
-   bitSection.Orientation = Orientation.Horizontal;
+            // 모던 스타일 효과
+            var style = new Style(typeof(TextBox));
+            var template = new ControlTemplate(typeof(TextBox));
 
-   TextBlock label = new TextBlock();
-   label.Text = "비트: ";
-   label.VerticalAlignment = VerticalAlignment.Center;
-   label.Margin = new Thickness(0, 0, 5, 0);
+            var borderFactory = new FrameworkElementFactory(typeof(Border));
+            borderFactory.Name = "border";
+            borderFactory.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(TextBox.BackgroundProperty));
+            borderFactory.SetValue(Border.BorderBrushProperty,
+                new TemplateBindingExtension(TextBox.BorderBrushProperty));
+            borderFactory.SetValue(Border.BorderThicknessProperty,
+                new TemplateBindingExtension(TextBox.BorderThicknessProperty));
+            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
 
-   bitGrid = new Grid();
-   bitGrid.HorizontalAlignment = HorizontalAlignment.Left;
+            var scrollViewerFactory = new FrameworkElementFactory(typeof(ScrollViewer));
+            scrollViewerFactory.Name = "PART_ContentHost";
+            scrollViewerFactory.SetValue(ScrollViewer.FocusableProperty, false);
+            scrollViewerFactory.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty,
+                ScrollBarVisibility.Hidden);
+            scrollViewerFactory.SetValue(ScrollViewer.VerticalScrollBarVisibilityProperty, ScrollBarVisibility.Hidden);
+            scrollViewerFactory.SetValue(ScrollViewer.MarginProperty,
+                new TemplateBindingExtension(TextBox.PaddingProperty));
 
-   // 행 정의 추가
-   bitGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 비트 번호
-   bitGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 비트 값
+            borderFactory.AppendChild(scrollViewerFactory);
+            template.VisualTree = borderFactory;
 
-   // 16개 열 정의
-   for (int i = 0; i < 16; i++)
-   {
-       bitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
-   }
+            // 포커스 트리거
+            var focusTrigger = new Trigger();
+            focusTrigger.Property = TextBox.IsFocusedProperty;
+            focusTrigger.Value = true;
+            focusTrigger.Setters.Add(new Setter(TextBox.BorderBrushProperty,
+                new SolidColorBrush(Color.FromRgb(0x00, 0x78, 0xD4)), "border"));
+            focusTrigger.Setters.Add(new Setter(TextBox.BorderThicknessProperty, new Thickness(2), "border"));
+            focusTrigger.Setters.Add(new Setter(TextBox.EffectProperty, new DropShadowEffect
+            {
+                Color = Color.FromRgb(0x00, 0x78, 0xD4),
+                BlurRadius = 10,
+                ShadowDepth = 0,
+                Opacity = 0.6
+            }, "border"));
 
-   // 비트 번호 라벨 생성 (15부터 0까지)
-   for (int bit = 15; bit >= 0; bit--)
-   {
-       TextBlock bitNumberLabel = new TextBlock();
-       bitNumberLabel.Text = bit.ToString();
-       bitNumberLabel.FontSize = 8;
-       bitNumberLabel.FontWeight = FontWeights.Bold;
-       bitNumberLabel.Foreground = Brushes.DarkBlue;
-       bitNumberLabel.TextAlignment = TextAlignment.Center;
-       bitNumberLabel.HorizontalAlignment = HorizontalAlignment.Center;
-       bitNumberLabel.Margin = new Thickness(1, 0, 1, 0);
-       
-       Grid.SetRow(bitNumberLabel, 0);
-       Grid.SetColumn(bitNumberLabel, 15 - bit);
-       bitGrid.Children.Add(bitNumberLabel);
-   }
+            template.Triggers.Add(focusTrigger);
+            textBox.Template = template;
 
-   // 비트 텍스트박스 생성 (15부터 0까지)
-   for (int bit = 15; bit >= 0; bit--)
-   {
-       TextBox bitTextBox = new TextBox();
-       bitTextBox.Width = 18;
-       bitTextBox.Height = 25;
-       bitTextBox.FontSize = 9;
-       bitTextBox.FontWeight = FontWeights.Bold;
-       bitTextBox.TextAlignment = TextAlignment.Center;
-       bitTextBox.VerticalContentAlignment = VerticalAlignment.Center;
-       bitTextBox.MaxLength = 1;
-       bitTextBox.Tag = bit;
-       bitTextBox.IsTabStop = false;
-       bitTextBox.Margin = new Thickness(0, 0, 0, 10);
+            return textBox;
+        }
 
-       bitTextBox.TextChanged += BitTextBox_TextChanged;
-       bitTextBox.KeyDown += BitTextBox_KeyDown;
-       bitTextBox.GotFocus += (s, e) => ((TextBox)s).SelectAll();
-       
-       bitTextBox.MouseDoubleClick += (sender, e) =>
-       {
-           var tb = sender as TextBox;
-           string newValue = (tb.Text == "0") ? "1" : "0";
-           tb.Text = newValue;
-       };
+        private void CreateBitEditor(StackPanel parent)
+        {
+            StackPanel bitSection = new StackPanel();
+            bitSection.Orientation = Orientation.Horizontal;
 
-       Grid.SetRow(bitTextBox, 1); // 두 번째 행에 배치
-       Grid.SetColumn(bitTextBox, 15 - bit);
-       bitGrid.Children.Add(bitTextBox);
-   }
+            TextBlock label = new TextBlock();
+            label.Text = "비트";
+            label.Foreground = new SolidColorBrush(Color.FromRgb(0xCC, 0xCC, 0xCC));
+            label.VerticalAlignment = VerticalAlignment.Center;
+            label.Margin = new Thickness(0, 0, 8, 0);
+            label.FontSize = 12;
+            label.FontWeight = FontWeights.Medium;
 
-   bitSection.Children.Add(label);
-   bitSection.Children.Add(bitGrid);
-   parent.Children.Add(bitSection);
-}
+            bitGrid = new Grid();
+            bitGrid.HorizontalAlignment = HorizontalAlignment.Left;
+
+            // 행 정의
+            bitGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 비트 번호
+            bitGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // 비트 값
+
+            // 16개 열 정의
+            for (int i = 0; i < 16; i++)
+            {
+                bitGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(22) });
+            }
+
+            // 비트 번호 라벨 생성 (15부터 0까지)
+            for (int bit = 15; bit >= 0; bit--)
+            {
+                TextBlock bitNumberLabel = new TextBlock();
+                bitNumberLabel.Text = bit.ToString();
+                bitNumberLabel.FontSize = 8;
+                bitNumberLabel.FontWeight = FontWeights.Bold;
+                bitNumberLabel.Foreground = new SolidColorBrush(Color.FromRgb(0x9C, 0xDC, 0xFE));
+                bitNumberLabel.TextAlignment = TextAlignment.Center;
+                bitNumberLabel.HorizontalAlignment = HorizontalAlignment.Center;
+                bitNumberLabel.Margin = new Thickness(1, 0, 1, 2);
+
+                Grid.SetRow(bitNumberLabel, 0);
+                Grid.SetColumn(bitNumberLabel, 15 - bit);
+                bitGrid.Children.Add(bitNumberLabel);
+            }
+
+            // 비트 텍스트박스 생성 (15부터 0까지)
+            for (int bit = 15; bit >= 0; bit--)
+            {
+                TextBox bitTextBox = CreateModernBitTextBox();
+                bitTextBox.Tag = bit;
+
+                bitTextBox.TextChanged += BitTextBox_TextChanged;
+                bitTextBox.KeyDown += BitTextBox_KeyDown;
+                bitTextBox.GotFocus += (s, e) => ((TextBox)s).SelectAll();
+
+                bitTextBox.MouseDoubleClick += (sender, e) =>
+                {
+                    var tb = sender as TextBox;
+                    string newValue = (tb.Text == "0") ? "1" : "0";
+                    tb.Text = newValue;
+                };
+
+                Grid.SetRow(bitTextBox, 1);
+                Grid.SetColumn(bitTextBox, 15 - bit);
+                bitGrid.Children.Add(bitTextBox);
+            }
+
+            bitSection.Children.Add(label);
+            bitSection.Children.Add(bitGrid);
+            parent.Children.Add(bitSection);
+        }
+
+        private TextBox CreateModernBitTextBox()
+        {
+            TextBox bitTextBox = new TextBox();
+            bitTextBox.Width = 20;
+            bitTextBox.Height = 28;
+            bitTextBox.FontSize = 10;
+            bitTextBox.FontWeight = FontWeights.Bold;
+            bitTextBox.TextAlignment = TextAlignment.Center;
+            bitTextBox.VerticalContentAlignment = VerticalAlignment.Center;
+            bitTextBox.MaxLength = 1;
+            bitTextBox.IsTabStop = false;
+            bitTextBox.Background = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
+            bitTextBox.Foreground = new SolidColorBrush(Color.FromRgb(0xFF, 0xFF, 0xFF));
+            bitTextBox.BorderBrush = new SolidColorBrush(Color.FromRgb(0x3F, 0x3F, 0x46));
+            bitTextBox.BorderThickness = new Thickness(1);
+
+            // 둥근 모서리
+            var template = new ControlTemplate(typeof(TextBox));
+            var borderFactory = new FrameworkElementFactory(typeof(Border));
+            borderFactory.SetValue(Border.BackgroundProperty, new TemplateBindingExtension(TextBox.BackgroundProperty));
+            borderFactory.SetValue(Border.BorderBrushProperty,
+                new TemplateBindingExtension(TextBox.BorderBrushProperty));
+            borderFactory.SetValue(Border.BorderThicknessProperty,
+                new TemplateBindingExtension(TextBox.BorderThicknessProperty));
+            borderFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(4));
+
+            var contentPresenter = new FrameworkElementFactory(typeof(ScrollViewer));
+            contentPresenter.Name = "PART_ContentHost";
+            contentPresenter.SetValue(ScrollViewer.FocusableProperty, false);
+            contentPresenter.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty, ScrollBarVisibility.Hidden);
+            contentPresenter.SetValue(ScrollViewer.VerticalScrollBarVisibilityProperty, ScrollBarVisibility.Hidden);
+
+            borderFactory.AppendChild(contentPresenter);
+            template.VisualTree = borderFactory;
+            bitTextBox.Template = template;
+
+            return bitTextBox;
+        }
 
         private void BitTextBox_TextChanged(object sender, RoutedEventArgs e)
         {
@@ -903,7 +1081,7 @@ private void CreateBitEditor(StackPanel parent)
         private void BitTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
             var tb = sender as TextBox;
-            
+
             if (e.Key == System.Windows.Input.Key.D0 || e.Key == System.Windows.Input.Key.NumPad0)
             {
                 tb.Text = "0";
@@ -916,7 +1094,6 @@ private void CreateBitEditor(StackPanel parent)
             }
             else if (e.Key == System.Windows.Input.Key.Left || e.Key == System.Windows.Input.Key.Right)
             {
-                // 비트 간 이동 처리
                 MoveBitFocus(tb, e.Key == System.Windows.Input.Key.Left);
                 e.Handled = true;
             }
@@ -930,7 +1107,7 @@ private void CreateBitEditor(StackPanel parent)
         {
             int currentPos = (int)currentBit.Tag;
             int targetPos = moveLeft ? currentPos - 1 : currentPos + 1;
-            
+
             if (targetPos >= 0 && targetPos <= 15)
             {
                 var targetBit = bitGrid.Children.OfType<TextBox>()
@@ -947,20 +1124,36 @@ private void CreateBitEditor(StackPanel parent)
         {
             if (bitValue == 1)
             {
-                textBox.Background = new SolidColorBrush(Color.FromRgb(76, 175, 80));
-                textBox.Foreground = Brushes.White;
+                // 네온 그린 효과
+                textBox.Background = new LinearGradientBrush(
+                    new GradientStopCollection
+                    {
+                        new GradientStop(Color.FromRgb(0x39, 0xFF, 0x14), 0),
+                        new GradientStop(Color.FromRgb(0x00, 0xFF, 0x41), 1)
+                    },
+                    new Point(0, 0), new Point(0, 1)
+                );
+                textBox.Foreground = new SolidColorBrush(Color.FromRgb(0x00, 0x00, 0x00));
+                textBox.Effect = new DropShadowEffect
+                {
+                    Color = Color.FromRgb(0x00, 0xFF, 0x41),
+                    BlurRadius = 8,
+                    ShadowDepth = 0,
+                    Opacity = 0.8
+                };
             }
             else
             {
-                textBox.Background = new SolidColorBrush(Color.FromRgb(240, 240, 240));
-                textBox.Foreground = Brushes.Black;
+                textBox.Background = new SolidColorBrush(Color.FromRgb(0x40, 0x40, 0x40));
+                textBox.Foreground = new SolidColorBrush(Color.FromRgb(0xAA, 0xAA, 0xAA));
+                textBox.Effect = null;
             }
         }
 
         private void ProcessDecimalInput()
         {
             if (isInternalUpdate || RegisterModel == null) return;
-            
+
             if (int.TryParse(decimalTextBox.Text, out int value))
             {
                 value = Math.Max(0, Math.Min(65535, value));
@@ -979,7 +1172,7 @@ private void CreateBitEditor(StackPanel parent)
         private void ProcessHexInput()
         {
             if (isInternalUpdate || RegisterModel == null) return;
-            
+
             string input = hexTextBox.Text.Trim().Replace("0x", "").Replace("0X", "");
             if (int.TryParse(input, System.Globalization.NumberStyles.HexNumber, null, out int value))
             {
@@ -999,7 +1192,7 @@ private void CreateBitEditor(StackPanel parent)
         private void ProcessStringInput()
         {
             if (isInternalUpdate || RegisterModel == null) return;
-            
+
             int value = ConvertStringToRegisterValue(stringTextBox.Text);
             if (value != RegisterModel.RegisterValue)
             {
@@ -1011,7 +1204,7 @@ private void CreateBitEditor(StackPanel parent)
         private void UpdateRegisterFromBits()
         {
             if (isInternalUpdate || RegisterModel == null) return;
-            
+
             int newValue = 0;
             foreach (TextBox tb in bitGrid.Children.OfType<TextBox>())
             {
@@ -1024,7 +1217,7 @@ private void CreateBitEditor(StackPanel parent)
                     }
                 }
             }
-            
+
             if (newValue != RegisterModel.RegisterValue)
             {
                 RegisterModel.RegisterValue = newValue;
@@ -1035,26 +1228,27 @@ private void CreateBitEditor(StackPanel parent)
         private void UpdateAllDisplays()
         {
             if (RegisterModel == null) return;
-            
+
             isInternalUpdate = true;
-            
+
             try
             {
-                // 헤더 업데이트
-                headerLabel.Text = $"Register {RegisterModel.DisplayAddress} (Address: {RegisterModel.ModbusAddress}) - Value: {RegisterModel.RegisterValue}";
-                
+                // 헤더 업데이트 (네온 스타일)
+                headerLabel.Text =
+                    $"📍 Register {RegisterModel.DisplayAddress} (Address: {RegisterModel.ModbusAddress}) ➤ Value: {RegisterModel.RegisterValue}";
+
                 // 텍스트박스 업데이트 (포커스된 것은 제외)
                 if (!decimalTextBox.IsFocused)
                     decimalTextBox.Text = RegisterModel.RegisterValue.ToString();
-                
+
                 if (!hexTextBox.IsFocused)
                     hexTextBox.Text = $"0x{RegisterModel.RegisterValue:X4}";
-                
+
                 if (!stringTextBox.IsFocused)
                     stringTextBox.Text = ExtractStringFromRegister(RegisterModel.RegisterValue);
-                
+
                 binaryTextBox.Text = Convert.ToString(RegisterModel.RegisterValue & 0xFFFF, 2).PadLeft(16, '0');
-                
+
                 // 비트 업데이트
                 foreach (TextBox tb in bitGrid.Children.OfType<TextBox>())
                 {
@@ -1079,15 +1273,15 @@ private void CreateBitEditor(StackPanel parent)
         private string ExtractStringFromRegister(int registerValue)
         {
             StringBuilder sb = new StringBuilder();
-            
+
             char char1 = (char)((registerValue >> 8) & 0xFF);
             if (char1 >= 32 && char1 <= 126)
                 sb.Append(char1);
-            
+
             char char2 = (char)(registerValue & 0xFF);
             if (char2 >= 32 && char2 <= 126)
                 sb.Append(char2);
-            
+
             return sb.ToString();
         }
 
@@ -1095,18 +1289,18 @@ private void CreateBitEditor(StackPanel parent)
         {
             if (string.IsNullOrEmpty(input))
                 return 0;
-            
+
             int value = 0;
             if (input.Length >= 1)
                 value |= ((int)input[0] << 8);
             if (input.Length >= 2)
                 value |= (int)input[1];
-            
+
             return value & 0xFFFF;
         }
 
         public static readonly RoutedEvent RegisterValueUpdatedEvent = EventManager.RegisterRoutedEvent(
-            "RegisterValueUpdated", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(OptimizedRegisterControl));
+            "RegisterValueUpdated", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(ModernRegisterControl));
 
         public event RoutedEventHandler RegisterValueUpdated
         {
@@ -1121,7 +1315,7 @@ private void CreateBitEditor(StackPanel parent)
 
         private static void OnRegisterModelChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            var control = d as OptimizedRegisterControl;
+            var control = d as ModernRegisterControl;
             if (control == null) return;
 
             if (e.OldValue is DualRegisterModel oldModel)
@@ -1239,6 +1433,7 @@ private void CreateBitEditor(StackPanel parent)
                     Value = 0
                 });
             }
+
             return list;
         }
 
@@ -1254,6 +1449,7 @@ private void CreateBitEditor(StackPanel parent)
                     RegisterValue = 0
                 });
             }
+
             return list;
         }
     }
@@ -1302,6 +1498,7 @@ private void CreateBitEditor(StackPanel parent)
             {
                 deviceDataCache[unitId] = new DeviceDataCache();
             }
+
             UpdateDeviceCache(unitId, device);
         }
 
@@ -1467,10 +1664,10 @@ private void CreateBitEditor(StackPanel parent)
         {
             int dataStoreIndex = e.StartAddress + 1;
 
-            if (e.ModbusDataType == ModbusDataType.HoldingRegister && 
+            if (e.ModbusDataType == ModbusDataType.HoldingRegister &&
                 device.DualRegisters != null && device.RegisterType == 40001)
             {
-                if (device.DualRegisters.Any(r => r.ModbusAddress == e.StartAddress) && 
+                if (device.DualRegisters.Any(r => r.ModbusAddress == e.StartAddress) &&
                     dataStoreIndex < HoldingRegisters.Count)
                 {
                     cache.HoldingRegisters[e.StartAddress] = HoldingRegisters[dataStoreIndex];
@@ -1478,7 +1675,7 @@ private void CreateBitEditor(StackPanel parent)
             }
             else if (e.ModbusDataType == ModbusDataType.Coil && device.Coils != null)
             {
-                if (device.Coils.Any(r => r.ModbusAddress == e.StartAddress) && 
+                if (device.Coils.Any(r => r.ModbusAddress == e.StartAddress) &&
                     dataStoreIndex < CoilDiscretes.Count)
                 {
                     cache.CoilDiscretes[e.StartAddress] = CoilDiscretes[dataStoreIndex];
@@ -1493,7 +1690,7 @@ private void CreateBitEditor(StackPanel parent)
                 try
                 {
                     var mainWindow = Application.Current.MainWindow as MainWindow;
-                    if (mainWindow?.DeviceTabControl?.SelectedItem is TabItem selectedTab && 
+                    if (mainWindow?.DeviceTabControl?.SelectedItem is TabItem selectedTab &&
                         selectedTab.Tag is byte currentUnitId && devices.ContainsKey(currentUnitId))
                     {
                         var device = devices[currentUnitId];
@@ -1511,7 +1708,7 @@ private void CreateBitEditor(StackPanel parent)
         {
             int dataStoreIndex = e.StartAddress + 1;
 
-            if (e.ModbusDataType == ModbusDataType.HoldingRegister && 
+            if (e.ModbusDataType == ModbusDataType.HoldingRegister &&
                 device.DualRegisters != null && device.RegisterType == 40001)
             {
                 var targetRegister = device.DualRegisters.FirstOrDefault(r => r.ModbusAddress == e.StartAddress);

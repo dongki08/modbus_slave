@@ -2,132 +2,158 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:fa="http://schemas.awesome.incremented/wpf/xaml/fontawesome.sharp"
-        Title="Modbus TCP Slave Simulator" Height="600" Width="1050">
+        Title="Modbus TCP Slave Simulator" Height="700" Width="1200"
+        Background="Transparent" WindowStyle="None" AllowsTransparency="True"
+        ResizeMode="CanResize">
+    
     <Window.Resources>
+        <!-- 글로벌 색상 정의 -->
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#0078D4"/>
+        <SolidColorBrush x:Key="SecondaryBrush" Color="#2B2B2B"/>
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF6B35"/>
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#2D2D30"/>
+        <SolidColorBrush x:Key="TextBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#CCCCCC"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#3F3F46"/>
+        <SolidColorBrush x:Key="SuccessBrush" Color="#16A085"/>
+        <SolidColorBrush x:Key="DangerBrush" Color="#E74C3C"/>
+        <SolidColorBrush x:Key="WarningBrush" Color="#F39C12"/>
+
+        <!-- 네온 글로우 효과 -->
+        <DropShadowEffect x:Key="NeonGlow" Color="#0078D4" BlurRadius="15" ShadowDepth="0" Opacity="0.6"/>
+        <DropShadowEffect x:Key="SoftShadow" Color="#000000" BlurRadius="8" ShadowDepth="2" Opacity="0.3"/>
+        <DropShadowEffect x:Key="CardShadow" Color="#000000" BlurRadius="20" ShadowDepth="0" Opacity="0.4"/>
+
         <!-- 모던 버튼 스타일 -->
         <Style x:Key="ModernButton" TargetType="Button">
-            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#0078D4" Offset="0"/>
+                        <GradientStop Color="#106EBE" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Width" Value="100"></Setter>
             <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Width" Value="80"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="Margin" Value="0, 2, 10, 2"/>
             <Setter Property="FontWeight" Value="Medium"/>
             <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Effect" Value="{StaticResource SoftShadow}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                CornerRadius="8" 
+                                BorderThickness="1" 
+                                BorderBrush="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Effect" Value="{StaticResource NeonGlow}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#0078D4"/>
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.05" ScaleY="1.05"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 성공 버튼 -->
+        <Style x:Key="SuccessButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#16A085" Offset="0"/>
+                        <GradientStop Color="#138D75" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Width" Value="70"></Setter>
+        </Style>
+
+        <!-- 위험 버튼 -->
+        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#E74C3C" Offset="0"/>
+                        <GradientStop Color="#C0392B" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Width" Value="70"></Setter>
+        </Style>
+
+        <!-- 토글 버튼 -->
+        <Style x:Key="ToggleButton" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
                                 CornerRadius="6" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
                                 BorderBrush="{TemplateBinding BorderBrush}">
-                            <Border.Effect>
-                                <DropShadowEffect Color="#20000000" BlurRadius="4" ShadowDepth="2" Opacity="0.3"/>
-                            </Border.Effect>
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#0078D4"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#106EBE"/>
+                                <Setter TargetName="border" Property="Background" Value="#3F3F46"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#0078D4"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-
-        <Style x:Key="ModernButton2" TargetType="Button">
-            <Setter Property="Background" Value="#007ACC"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Width" Value="100"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="Margin" Value="0, 2, 8, 2"/>
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                        CornerRadius="6" 
-                        BorderThickness="{TemplateBinding BorderThickness}" 
-                        BorderBrush="{TemplateBinding BorderBrush}">
-                            <Border.Effect>
-                                <DropShadowEffect Color="#20000000" BlurRadius="4" ShadowDepth="2" Opacity="0.3"/>
-                            </Border.Effect>
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#0078D4"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#106EBE"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="ModernButton3" TargetType="Button">
-            <Setter Property="Background" Value="#007ACC"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Width" Value="100"/>
-            <Setter Property="Padding" Value="16,8"/>
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                 CornerRadius="6" 
-                 BorderThickness="{TemplateBinding BorderThickness}" 
-                 BorderBrush="{TemplateBinding BorderBrush}">
-                            <Border.Effect>
-                                <DropShadowEffect Color="#20000000" BlurRadius="4" ShadowDepth="2" Opacity="0.3"/>
-                            </Border.Effect>
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#0078D4"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#106EBE"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- 토글 버튼 스타일 -->
-        <Style x:Key="ToggleButton" TargetType="Button">
-            <Setter Property="Background" Value="#F0F0F0"/>
-            <Setter Property="Foreground" Value="#666666"/>
+        
+        <!-- 토글 버튼 -->
+        <Style x:Key="ToggleButton2" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#E1E1E1"/>
-            <Setter Property="Padding" Value="6,6"/>
-            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="3"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Width" Value="100"></Setter>
+            <Setter Property="Height" Value="30"></Setter>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" 
-                                CornerRadius="4" 
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                CornerRadius="6" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
                                 BorderBrush="{TemplateBinding BorderBrush}">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#E8E8E8"/>
+                                <Setter TargetName="border" Property="Background" Value="#3F3F46"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#0078D4"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -135,81 +161,40 @@
             </Setter>
         </Style>
 
-        <!-- 활성 토글 버튼 스타일 -->
+        <!-- 활성 토글 버튼 -->
         <Style x:Key="ActiveToggleButton" TargetType="Button" BasedOn="{StaticResource ToggleButton}">
-            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#0078D4" Offset="0"/>
+                        <GradientStop Color="#106EBE" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Width" Value="100"></Setter>
+            <Setter Property="Height" Value="30"></Setter>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#007ACC"/>
+            <Setter Property="BorderBrush" Value="#0078D4"/>
+            <Setter Property="Effect" Value="{StaticResource NeonGlow}"/>
         </Style>
 
-        <!-- 위험 버튼 스타일 -->
-        <Style x:Key="DangerButton2" TargetType="Button" BasedOn="{StaticResource ModernButton2}">
-            <Setter Property="Background" Value="#D13438"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#C50E13"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#A50E13"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- 위험 버튼 스타일 -->
-        <Style x:Key="DangerButton3" TargetType="Button" BasedOn="{StaticResource ModernButton3}">
-            <Setter Property="Background" Value="#D13438"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#C50E13"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#A50E13"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- 위험 버튼 스타일 -->
-        <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
-            <Setter Property="Background" Value="#D13438"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#C50E13"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#A50E13"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- 성공 버튼 스타일 -->
-        <Style x:Key="SuccessButton" TargetType="Button" BasedOn="{StaticResource ModernButton}">
-            <Setter Property="Background" Value="#107C10"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#0F6B0F"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#0D5B0D"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- 모던 텍스트박스 스타일 -->
+        <!-- 모던 텍스트박스 -->
         <Style x:Key="ModernTextBox" TargetType="TextBox">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E1E1E1"/>
-            <Setter Property="Height" Value="35"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="3,3"/>
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Padding" Value="5,0, 0, 0"/>
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}" 
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
                                 BorderBrush="{TemplateBinding BorderBrush}" 
                                 BorderThickness="{TemplateBinding BorderThickness}" 
-                                CornerRadius="4">
+                                CornerRadius="6">
                             <ScrollViewer x:Name="PART_ContentHost" 
                                           Focusable="false" 
                                           HorizontalScrollBarVisibility="Hidden" 
@@ -218,8 +203,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsFocused" Value="True">
-                                <Setter Property="BorderBrush" Value="#007ACC"/>
-                                <Setter Property="BorderThickness" Value="2"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#0078D4"/>
+                                <Setter TargetName="border" Property="BorderThickness" Value="2"/>
+                                <Setter TargetName="border" Property="Effect" Value="{StaticResource NeonGlow}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="BorderBrush" Value="#4A9EFF"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -227,58 +216,127 @@
             </Setter>
         </Style>
 
-        <!-- 모던 콤보박스 스타일 -->
-        <Style x:Key="ModernComboBox" TargetType="ComboBox">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#E1E1E1"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="12,8,32,8"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Height" Value="36"/>
-        </Style>
+        <!-- 모던 콤보박스 -->
+        <!-- 모던 콤보박스 -->
+<Style x:Key="ModernComboBox" TargetType="ComboBox">
+    <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="FontSize" Value="13"/>
+    <Setter Property="Height" Value="35"/>
+    <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="ComboBox">
+                <Grid>
+                    <ToggleButton x:Name="ToggleButton"
+                                  Grid.Column="2"
+                                  Focusable="false"
+                                  IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                  ClickMode="Press">
+                        <ToggleButton.Template>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="Border" Background="{TemplateBinding Background}" 
+                                        BorderBrush="{TemplateBinding BorderBrush}" 
+                                        BorderThickness="{TemplateBinding BorderThickness}" 
+                                        CornerRadius="6">
+                                    <Path x:Name="Arrow" Fill="{StaticResource TextBrush}"
+                                          HorizontalAlignment="Right" VerticalAlignment="Center"
+                                          Data="M 0 0 L 4 4 L 8 0 Z" Margin="0,0,10,0"/>
+                                </Border>
+                            </ControlTemplate>
+                        </ToggleButton.Template>
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton">
+                                <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+                                <Setter Property="BorderThickness" Value="1"/>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
+                    <ContentPresenter Name="ContentSite" IsHitTestVisible="False" 
+                                      Content="{TemplateBinding SelectionBoxItem}"
+                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                      ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                      Margin="10,3,30,3" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                    <Popup Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}"
+                           AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                        <Grid Name="DropDown" SnapsToDevicePixels="True" MinWidth="{TemplateBinding ActualWidth}"
+                              MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                            <Border x:Name="DropDownBorder" Background="{StaticResource SurfaceBrush}"
+                                    BorderThickness="1" BorderBrush="{StaticResource BorderBrush}" CornerRadius="6"/>
+                            <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">
+                                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                            </ScrollViewer>
+                        </Grid>
+                    </Popup>
+                </Grid>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+</Style>
 
         <!-- 카드 스타일 -->
-        <Style x:Key="Card" TargetType="Border">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="15, 5, 15, 5"/>
-            <Setter Property="Margin" Value="8"/>
+        <Style x:Key="GlassCard" TargetType="Border">
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1" Opacity="0.9">
+                        <GradientStop Color="#2D2D30" Offset="0"/>
+                        <GradientStop Color="#252526" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="14, 0,14,0"/>
+            <Setter Property="Margin" Value="20, 5, 20,5"/>
+            <Setter Property="Effect" Value="{StaticResource CardShadow}"/>
+        </Style>
+
+        <!-- 헤더 텍스트 -->
+        <Style x:Key="HeaderText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
             <Setter Property="Effect">
                 <Setter.Value>
-                    <DropShadowEffect Color="#15000000" BlurRadius="12" ShadowDepth="4" Opacity="0.3"/>
+                    <DropShadowEffect Color="#0078D4" BlurRadius="5" ShadowDepth="0" Opacity="0.3"/>
                 </Setter.Value>
             </Setter>
         </Style>
 
-        <!-- 헤더 텍스트 스타일 -->
-        <Style x:Key="HeaderText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="18"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#2C2C2C"/>
-            <Setter Property="Margin" Value="0,0,0,0"/>
-        </Style>
-
-        <!-- 라벨 텍스트 스타일 -->
+        <!-- 라벨 텍스트 -->
         <Style x:Key="LabelText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="14"/>
             <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="Foreground" Value="#5C5C5C"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="0,0,8,0"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
         </Style>
 
-        <!-- 상태 텍스트 스타일 -->
+        <!-- 상태 텍스트 -->
         <Style x:Key="StatusText" TargetType="TextBlock">
             <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Padding" Value="12,6"/>
-            <Setter Property="Background" Value="#FFF4CE"/>
-            <Setter Property="Foreground" Value="#9D6C00"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#F39C12" Offset="0"/>
+                        <GradientStop Color="#E67E22" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="White"/>
         </Style>
 
-        <!-- 최적화된 탭 컨트롤 스타일 -->
+        <!-- 탭 컨트롤 스타일 -->
         <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="TabControl">
@@ -289,16 +347,16 @@
                             </Grid.RowDefinitions>
                             <TabPanel Grid.Row="0" Panel.ZIndex="1" 
                                       IsItemsHost="True" 
-                                      Margin="0,0,0,0"
+                                      Margin="0,0,0,10"
                                       Background="Transparent"/>
                             <Border Grid.Row="1" 
-                                    Background="White" 
-                                    BorderBrush="#E1E1E1" 
-                                    BorderThickness="1,0,1,1"
-                                    CornerRadius="0,0,4,4"
-                                    Margin="2,0,2,0">
+                                    Background="{StaticResource SurfaceBrush}" 
+                                    BorderBrush="{StaticResource BorderBrush}" 
+                                    BorderThickness="1"
+                                    CornerRadius="10"
+                                    Effect="{StaticResource CardShadow}">
                                 <ContentPresenter ContentSource="SelectedContent" 
-                                                  Margin="0" 
+                                                  Margin="15" 
                                                   x:Name="PART_SelectedContentHost"/>
                             </Border>
                         </Grid>
@@ -307,57 +365,68 @@
             </Setter>
         </Style>
 
-        <!-- 최적화된 탭 아이템 스타일 -->
-        <Style TargetType="TabItem">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="TabBorder" 
-                                Background="#F8F9FA" 
-                                BorderBrush="#E1E1E1" 
-                                BorderThickness="1,1,1,0" 
-                                CornerRadius="4,4,0,0" 
-                                Margin="2,0,2,0" 
-                                Padding="12,6">
-                            <ContentPresenter ContentSource="Header" 
-                                              HorizontalAlignment="Center" 
-                                              VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="TabBorder" Property="Background" Value="White"/>
-                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#007ACC"/>
-                                <Setter TargetName="TabBorder" Property="BorderThickness" Value="1,2,1,0"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="TabBorder" Property="Background" Value="#F0F0F0"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="FontWeight" Value="Medium"/>
-            <Setter Property="FontSize" Value="13"/>
-            <Setter Property="Margin" Value="0"/>
-            <Setter Property="Padding" Value="0"/>
-        </Style>
+        <!-- 탭 아이템 스타일 -->
+        <!-- 탭 아이템 스타일 수정 -->
+<Style TargetType="TabItem">
+    <Setter Property="Template">
+        <Setter.Value>
+            <ControlTemplate TargetType="TabItem">
+                <Border x:Name="TabBorder" 
+                        Background="{StaticResource SurfaceBrush}" 
+                        BorderBrush="{StaticResource BorderBrush}" 
+                        BorderThickness="1,1,1,0" 
+                        CornerRadius="8,8,0,0" 
+                        Margin="2,0" 
+                        Padding="10,5,10,5">
+                    <ContentPresenter ContentSource="Header" 
+                                      HorizontalAlignment="Center" 
+                                      VerticalAlignment="Center"/>
+                </Border>
+                <ControlTemplate.Triggers>
+                    <Trigger Property="IsSelected" Value="True">
+                        <Setter TargetName="TabBorder" Property="Background">
+                            <Setter.Value>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#0078D4" Offset="0"/>
+                                    <GradientStop Color="#106EBE" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Setter.Value>
+                        </Setter>
+                        <Setter TargetName="TabBorder" Property="BorderBrush" Value="#0078D4"/>
+                        <Setter TargetName="TabBorder" Property="BorderThickness" Value="1,1,1,0"/>
+                        <Setter TargetName="TabBorder" Property="Effect" Value="{StaticResource NeonGlow}"/>
+                    </Trigger>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter TargetName="TabBorder" Property="Background" Value="#3F3F46"/>
+                        <Setter TargetName="TabBorder" Property="BorderBrush" Value="#4A9EFF"/>
+                    </Trigger>
+                </ControlTemplate.Triggers>
+            </ControlTemplate>
+        </Setter.Value>
+    </Setter>
+    <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+    <Setter Property="FontWeight" Value="Medium"/>
+    <Setter Property="FontSize" Value="13"/>
+</Style>
 
-        <!-- 최적화된 리스트박스 스타일 -->
+        <!-- 리스트박스 스타일 -->
         <Style TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True"/>
             <Setter Property="VirtualizingStackPanel.VirtualizationMode" Value="Recycling"/>
             <Setter Property="ScrollViewer.CanContentScroll" Value="True"/>
-            <Setter Property="ItemsPanel">
-                <Setter.Value>
-                    <ItemsPanelTemplate>
-                        <VirtualizingStackPanel IsVirtualizing="True" VirtualizationMode="Recycling"/>
-                    </ItemsPanelTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
 
-        <!-- 최적화된 데이터그리드 스타일 -->
+        <!-- 데이터그리드 스타일 -->
         <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="RowBackground" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="AlternatingRowBackground" Value="#323237"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BorderBrush}"/>
             <Setter Property="EnableRowVirtualization" Value="True"/>
             <Setter Property="EnableColumnVirtualization" Value="True"/>
             <Setter Property="VirtualizingStackPanel.IsVirtualizing" Value="True"/>
@@ -365,152 +434,173 @@
         </Style>
     </Window.Resources>
 
-    <Grid Background="#F5F5F7">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="60"/>
-            <RowDefinition Height="60"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+    <!-- 타이틀바 -->
+    <Border CornerRadius="15" Background="{StaticResource BackgroundBrush}" 
+            BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="40"/>
+                <RowDefinition Height="80"/>
+                <RowDefinition Height="70"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <!-- 서버 제어 카드 -->
-        <Border Grid.Row="0" Style="{StaticResource Card}" Margin="16, 10, 16, 0">
-            <StackPanel Orientation="Horizontal" >
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <fa:IconImage Icon="Server" Width="24" Height="24" Foreground="Black" Margin="0,0,8,0"/>
-                    <TextBlock Text="서버 설정" Style="{StaticResource HeaderText}" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                </StackPanel>
-                <TextBlock Text="IP 주소:" Style="{StaticResource LabelText}"/>
-                <TextBox x:Name="IpTextBox" Width="120" Text="127.0.0.1" 
-                             Style="{StaticResource ModernTextBox}" Margin="0,0,16,0"/>
-
-                <TextBlock Text="포트:" Style="{StaticResource LabelText}"/>
-                <TextBox x:Name="PortTextBox" Width="60" Text="502" 
-                             Style="{StaticResource ModernTextBox}" Margin="0,0,16,0"/>
-
-                <Button Content="▶ 시작" Click="StartServer_Click" 
-                            Style="{StaticResource SuccessButton}"/>
-                <Button Content="⏹ 중지" Click="StopServer_Click" 
-                            Style="{StaticResource DangerButton}"/>
-
-                <Border Background="#FFF4CE" CornerRadius="4" Padding="12,6" Margin="0,7,0,7">
-                    <TextBlock x:Name="ServerStatusText" Text="서버 중지됨" 
-                                   Foreground="#9D6C00" FontWeight="Bold" VerticalAlignment="Center"/>
-                </Border>
-            </StackPanel>
-        </Border>
-
-        <!-- 장치 제어 카드 -->
-        <Border Grid.Row="1" Margin="16, 10, 16, 0" Style="{StaticResource Card}">
-            <StackPanel Orientation="Horizontal">
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <fa:IconImage Icon="Atom" Width="24" Height="24" Foreground="Black" Margin="0,0,8,0"/>
-                    <TextBlock Text="장치 관리" Style="{StaticResource HeaderText}" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                </StackPanel>
-                <TextBlock Text="장치 ID:" Style="{StaticResource LabelText}"/>
-                <TextBox x:Name="UnitIdTextBox" Text="0" Width="50" Style="{StaticResource ModernTextBox}" Margin="0,0,16,0"/>
-
-                <TextBlock Text="시작 주소:" Style="{StaticResource LabelText}"/>
-                <TextBox x:Name="StartAddressTextBox" Width="60" Text="0" 
-                 Style="{StaticResource ModernTextBox}" Margin="0,0,16,0"/>
-
-                <TextBlock Text="레지스터 수:" Style="{StaticResource LabelText}"/>
-                <TextBox x:Name="AddressCountTextBox" Width="50" Text="10" 
-                             Style="{StaticResource ModernTextBox}" Margin="0,0,16,0"/>
-
-                <TextBlock Text="레지스터 타입:" Style="{StaticResource LabelText}"/>
-                <ComboBox x:Name="RegisterTypeComboBox" Width="200" 
-                              Style="{StaticResource ModernComboBox}" Margin="0,0,16,0">
-                    <ComboBoxItem Content="01 - Coil (R/W)" IsSelected="True"/>
-                    <ComboBoxItem Content="02 - Input Status (R)"/>
-                    <ComboBoxItem Content="03 - Holding Register (R/W)" IsSelected="True"/>
-                    <ComboBoxItem Content="04 - Input Register (R)"/>
-                </ComboBox>
-
-                <Button Content="➕ 장치 추가" Click="AddDevice_Click" 
-                            Style="{StaticResource ModernButton2}"/>
-            </StackPanel>
-        </Border>
-
-        <!-- 통합 데이터/로그 영역 -->
-        <Border Grid.Row="2" Style="{StaticResource Card}" Margin="16,8,16,8">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                
-                <!-- 헤더 및 토글 버튼 -->
-                <Grid Grid.Row="0" Margin="0,0,0,8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    
-                    <!-- 왼쪽: 헤더 -->
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                        <fa:IconImage x:Name="HeaderIcon" Icon="Database" Width="24" Height="24" Foreground="Black" Margin="0,0,8,0"/>
-                        <TextBlock x:Name="HeaderText" Text="장치 데이터" Style="{StaticResource HeaderText}" VerticalAlignment="Center" Margin="0,0,16,0"/>
-                        
-                        <!-- 장치 삭제 버튼 (장치 데이터 모드에서만 표시) -->
-                        <Button x:Name="DeleteDeviceButton" Content="🗑️ 장치 삭제" Click="DeleteDevice_Click" 
-                                Style="{StaticResource DangerButton3}" Visibility="Visible"/>
+            <!-- 커스텀 타이틀바 -->
+            <Border Grid.Row="0" Background="{StaticResource SurfaceBrush}" 
+                    CornerRadius="15,15,0,0" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0">
+                        <fa:IconImage Icon="Server" Width="20" Height="20" Foreground="#0078D4" Margin="0,0,10,0"/>
+                        <TextBlock Text="Modbus TCP Slave Simulator" 
+                                   Foreground="{StaticResource TextBrush}" 
+                                   FontWeight="Bold" FontSize="14"/>
                     </StackPanel>
                     
-                    <!-- 오른쪽: 토글 버튼 그룹 -->
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Button x:Name="DeviceDataButton" Content="📊 장치 데이터" 
-                                Style="{StaticResource ActiveToggleButton}" 
-                                Click="ShowDeviceData_Click" 
-                                Margin="0,0,2,0"/>
-                        <Button x:Name="LogButton" Content="📋 로그" 
-                                Style="{StaticResource ToggleButton}" 
-                                Click="ShowLog_Click" 
-                                Margin="2,0,0,0"/>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0">
+                        <Button Content="—" Width="30" Height="30" Margin="2" 
+                                Background="Transparent" Foreground="{StaticResource TextBrush}" 
+                                BorderThickness="0" Click="Minimize_Click"/>
+                        <Button Content="⬜" Width="30" Height="30" Margin="2" 
+                                Background="Transparent" Foreground="{StaticResource TextBrush}" 
+                                BorderThickness="0" Click="Maximize_Click"/>
+                        <Button Content="✕" Width="30" Height="30" Margin="2" 
+                                Background="Transparent" Foreground="#E74C3C" 
+                                BorderThickness="0" Click="Close_Click"/>
                     </StackPanel>
                 </Grid>
-                
-                <!-- 콘텐츠 영역 -->
-                <Grid Grid.Row="1">
-                    <!-- 장치 데이터 TabControl - 최적화된 버전 -->
-                    <TabControl x:Name="DeviceTabControl" 
-                                Background="Transparent" 
-                                BorderThickness="0"
-                                Padding="0" 
-                                Margin="0" 
-                                Visibility="Visible">
-                    </TabControl>
+            </Border>
+
+            <!-- 서버 제어 카드 -->
+            <Border Grid.Row="1" Style="{StaticResource GlassCard}" Margin="20, 20, 20, 5">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,30,0">
+                        <fa:IconImage Icon="Server" Width="28" Height="28" Foreground="#0078D4" Margin="0,0,15,0"/>
+                        <TextBlock Text="서버 제어" Style="{StaticResource HeaderText}" VerticalAlignment="Center"/>
+                    </StackPanel>
                     
-                    <!-- 로그 ListBox -->
-                    <Border x:Name="LogContainer" Background="#FAFBFC" CornerRadius="4" 
-                            BorderBrush="#E1E1E1" BorderThickness="1" Visibility="Collapsed">
-                        <ListBox x:Name="LogBox" 
-                                 Background="Transparent" 
-                                 BorderThickness="0" 
-                                 Padding="12"
-                                 FontFamily="Consolas, Monaco, monospace"
-                                 FontSize="12"
-                                 VirtualizingStackPanel.IsVirtualizing="True"
-                                 VirtualizingStackPanel.VirtualizationMode="Recycling"
-                                 ScrollViewer.CanContentScroll="True">
-                            <ListBox.ItemContainerStyle>
-                                <Style TargetType="ListBoxItem">
-                                    <Setter Property="Padding" Value="4,2"/>
-                                    <Setter Property="Margin" Value="0,1"/>
-                                    <Setter Property="Background" Value="Transparent"/>
-                                    <Setter Property="BorderThickness" Value="0"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#F0F0F0"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </ListBox.ItemContainerStyle>
-                        </ListBox>
+                    <TextBlock Text="IP 주소:" Style="{StaticResource LabelText}"/>
+                    <TextBox x:Name="IpTextBox" Width="140" Text="127.0.0.1" 
+                             Style="{StaticResource ModernTextBox}" Margin="0,0,20,0"/>
+
+                    <TextBlock Text="포트:" Style="{StaticResource LabelText}"/>
+                    <TextBox x:Name="PortTextBox" Width="80" Text="502" 
+                             Style="{StaticResource ModernTextBox}" Margin="0,0,20,0"/>
+
+                    <Button Content="시작" Click="StartServer_Click" 
+                            Style="{StaticResource SuccessButton}" Margin="0,0,10,0"/>
+                    <Button Content="중지" Click="StopServer_Click" 
+                            Style="{StaticResource DangerButton}" Margin="0,0,20,0"/>
+
+                    <Border Background="{StaticResource WarningBrush}" CornerRadius="8" Padding="15,8">
+                        <TextBlock x:Name="ServerStatusText" Text="서버 중지됨" 
+                                   Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
                     </Border>
+                </StackPanel>
+            </Border>
+
+            <!-- 장치 제어 카드 -->
+            <Border Grid.Row="2" Style="{StaticResource GlassCard}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,30,0">
+                        <fa:IconImage Icon="Microchip" Width="28" Height="28" Foreground="#FF6B35" Margin="0,0,15,0"/>
+                        <TextBlock Text="장치 관리" Style="{StaticResource HeaderText}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <TextBlock Text="장치 ID:" Style="{StaticResource LabelText}"/>
+                    <TextBox x:Name="UnitIdTextBox" Text="0" Width="60" 
+                             Style="{StaticResource ModernTextBox}" Margin="0,0,20,0"/>
+
+                    <TextBlock Text="시작 주소:" Style="{StaticResource LabelText}"/>
+                    <TextBox x:Name="StartAddressTextBox" Width="80" Text="0" 
+                             Style="{StaticResource ModernTextBox}" Margin="0,0,20,0"/>
+
+                    <TextBlock Text="레지스터 수:" Style="{StaticResource LabelText}"/>
+                    <TextBox x:Name="AddressCountTextBox" Width="80" Text="10" 
+                             Style="{StaticResource ModernTextBox}" Margin="0,0,20,0"/>
+
+                    <TextBlock Text="타입:" Style="{StaticResource LabelText}"/>
+                    <ComboBox x:Name="RegisterTypeComboBox" Width="220" 
+                              Style="{StaticResource ModernComboBox}" Margin="0,0,20,0">
+                        <ComboBoxItem Content="01 - Coil (R/W)" Foreground="{StaticResource TextBrush}"/>
+                        <ComboBoxItem Content="02 - Input Status (R)" Foreground="{StaticResource TextBrush}"/>
+                        <ComboBoxItem Content="03 - Holding Register (R/W)" IsSelected="True" Foreground="{StaticResource TextBrush}"/>
+                        <ComboBoxItem Content="04 - Input Register (R)" Foreground="{StaticResource TextBrush}"/>
+                    </ComboBox>
+
+                    <Button Content="장치 추가" Click="AddDevice_Click" 
+                            Style="{StaticResource ModernButton}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 데이터/로그 영역 -->
+            <Border Grid.Row="3" Style="{StaticResource GlassCard}" Margin="20, 5, 20, 15">
+                <Grid Margin="0, 0, 0, 15">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- 헤더 및 토글 -->
+                    <Grid Grid.Row="0" Margin="0,10,10,5">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <fa:IconImage x:Name="HeaderIcon" Icon="Database" Width="28" Height="28" 
+                                          Foreground="#0078D4" Margin="0,0,15,0"/>
+                            <TextBlock x:Name="HeaderText" Text="장치 데이터" 
+                                       Style="{StaticResource HeaderText}" VerticalAlignment="Center"/>
+                            
+                            <Button x:Name="DeleteDeviceButton" Content="삭제" Click="DeleteDevice_Click" 
+                                    Style="{StaticResource DangerButton}" Margin="20,0,0,0"/>
+                        </StackPanel>
+                        
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button x:Name="DeviceDataButton" Content="장치 데이터" 
+                                    Style="{StaticResource ActiveToggleButton}" 
+                                    Click="ShowDeviceData_Click"/>
+                            <Button x:Name="LogButton" Content="로그" 
+                                    Style="{StaticResource ToggleButton2}" 
+                                    Click="ShowLog_Click"/>
+                        </StackPanel>
+                    </Grid>
+                    
+                    <!-- 콘텐츠 -->
+                    <Grid Grid.Row="1">
+                        <TabControl x:Name="DeviceTabControl" 
+                                    Background="Transparent" 
+                                    BorderThickness="0"
+                                    Visibility="Visible"/>
+                        
+                        <Border x:Name="LogContainer" 
+                                Background="{StaticResource SurfaceBrush}" 
+                                CornerRadius="8" 
+                                BorderBrush="{StaticResource BorderBrush}" 
+                                BorderThickness="1" 
+                                Visibility="Collapsed">
+                            <ListBox x:Name="LogBox" 
+                                     Background="Transparent" 
+                                     BorderThickness="0" 
+                                     FontFamily="Consolas, Monaco, monospace"
+                                     FontSize="12"
+                                     Foreground="{StaticResource TextBrush}"
+                                     VirtualizingStackPanel.IsVirtualizing="True"
+                                     VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Margin" Value="0,1"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#3F3F46"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                            </ListBox>
+                        </Border>
+                    </Grid>
                 </Grid>
-            </Grid>
-        </Border>
-    </Grid>
+            </Border>
+        </Grid>
+    </Border>
 </Window>
