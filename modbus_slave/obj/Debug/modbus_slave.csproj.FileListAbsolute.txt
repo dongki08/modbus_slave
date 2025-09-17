@@ -1,0 +1,16 @@
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\bin\Debug\modbus_slave.exe.config
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\bin\Debug\modbus_slave.exe
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\bin\Debug\modbus_slave.pdb
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\bin\Debug\NModbus4.dll
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\modbus_slave.csproj.AssemblyReference.cache
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\MainWindow.baml
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\MainWindow.g.cs
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\App.g.cs
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\modbus_slave_MarkupCompile.cache
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\modbus_slave.g.resources
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\modbus_slave.Properties.Resources.resources
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\modbus_slave.csproj.GenerateResource.cache
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\modbus_slave.csproj.CoreCompileInputs.cache
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\modbus_s.226B4CB6.Up2Date
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\modbus_slave.exe
+C:\Users\dongki\RiderProjects\modbus_slave\modbus_slave\obj\Debug\modbus_slave.pdb
